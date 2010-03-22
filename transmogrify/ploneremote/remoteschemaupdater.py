@@ -10,11 +10,6 @@ import logging
 logger = logging.getLogger('Plone')
 
 
-
-from Products.Archetypes.interfaces import IBaseObject
-#from Products.Archetypes.event import ObjectInitializedEvent
-#from Products.Archetypes.event import ObjectEditedEvent
-
 class RemoteSchemaUpdaterSection(object):
     classProvides(ISectionBlueprint)
     implements(ISection)
