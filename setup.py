@@ -3,10 +3,10 @@ import os
 
 version = '0.2'
 
-setup(name='transmogrify.webcrawler',
+setup(name='transmogrify.ploneremote',
       version=version,
       description="",
-      long_description=open(os.path.join("transmogrify", "webcrawler", "webcrawler.txt")).read() + "\n" +
+      long_description=open(os.path.join("transmogrify", "ploneremote", "webcrawler.txt")).read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
       # Get more strings from http://www.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
@@ -30,5 +30,7 @@ setup(name='transmogrify.webcrawler',
           'collective.transmogrifier',
           ],
       entry_points="""
+            [z3c.autoinclude.plugin]
+            target = transmogrify
             """,
             )

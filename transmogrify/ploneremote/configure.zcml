@@ -1,0 +1,28 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    i18n_domain="pretaweb.funnelweb"
+    xmlns:five="http://namespaces.zope.org/five"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    >
+
+
+	  <include package="collective.transmogrifier" file="meta.zcml"/>
+
+<!--
+	<utility component=".constructor.SafeConstructorSection"
+     		 name="transmogrify.ploneremote.constructor" />
+    <utility component=".safeatschemaupdater.SafeATSchemaUpdaterSection"
+		     name="transmogrify.ploneremote.safeatschemaupdater" />
+    <utility component=".makeattachments.MakeAttachments"
+		     name="transmogrify.ploneremote.makeattachments" />
+    <utility component=".safeworkflowupdater.WorkflowUpdaterSection"
+		     name="transmogrify.ploneremote.workflowupdater" />
+-->
+
+    <utility component=".remoteconstructor.RemoteConstructorSection"
+		     name="transmogrify.ploneremote.remoteconstructor" />
+
+    <utility component=".remoteschemaupdater.RemoteSchemaUpdaterSection"
+		     name="transmogrify.ploneremote.remoteschemaupdater" />
+
+</configure>

@@ -28,22 +28,5 @@
              name="pretaweb.funnelweb.isindex" />
     <utility component=".pathmover.PathMover"
              name="pretaweb.funnelweb.pathmover" />
-	<utility component=".constructor.SafeConstructorSection"
-     		 name="pretaweb.funnelweb.constructor" />
-    <utility component=".safeatschemaupdater.SafeATSchemaUpdaterSection"
-		     name="pretaweb.funnelweb.safeatschemaupdater" />
-    <utility component=".makeattachments.MakeAttachments"
-		     name="pretaweb.funnelweb.makeattachments" />
-    <utility component=".safeworkflowupdater.WorkflowUpdaterSection"
-		     name="pretaweb.funnelweb.workflowupdater" />
-    <utility component=".debugsection.DebugSection"
-		     name="pretaweb.funnelweb.debugsection" />
-
-    <utility component=".remoteconstructor.RemoteConstructorSection"
-		     name="pretaweb.funnelweb.remoteconstructor" />
-    <utility component=".staticcreator.StaticCreatorSection"
-		     name="pretaweb.funnelweb.staticcreator" />
-    <utility component=".remoteschemaupdater.RemoteSchemaUpdaterSection"
-		     name="pretaweb.funnelweb.remoteschemaupdater" />
 
 </configure>
