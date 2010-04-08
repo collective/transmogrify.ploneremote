@@ -6,7 +6,7 @@
     >
 
 
-	  <include package="collective.transmogrifier" file="meta.zcml"/>
+    <include package="collective.transmogrifier" file="meta.zcml"/>
 
 <!--
 	<utility component=".constructor.SafeConstructorSection"
@@ -15,9 +15,10 @@
 		     name="transmogrify.ploneremote.safeatschemaupdater" />
     <utility component=".makeattachments.MakeAttachments"
 		     name="transmogrify.ploneremote.makeattachments" />
-    <utility component=".safeworkflowupdater.WorkflowUpdaterSection"
-		     name="transmogrify.ploneremote.workflowupdater" />
+		    
 -->
+    <utility component=".remoteworkflowupdater.RemoteWorkflowUpdaterSection"
+		     name="transmogrify.ploneremote.remoteworkflowupdater" />
 
     <utility component=".remoteconstructor.RemoteConstructorSection"
 		     name="transmogrify.ploneremote.remoteconstructor" />
