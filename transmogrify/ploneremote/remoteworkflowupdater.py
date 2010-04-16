@@ -14,7 +14,9 @@ logger = logging.getLogger('Plone')
 
 class RemoteWorkflowUpdaterSection(object):
     """
-    Do remote workflow state transition using ZPublisher (Not XML-RPC).
+    Do remote workflow state transition using Plone HTTP API.
+    
+    Trigger the same HTTP GET query as Workflow menu does in the user interface.
     """
     classProvides(ISectionBlueprint)
     implements(ISection)
@@ -30,53 +32,21 @@ class RemoteWorkflowUpdaterSection(object):
         # Remote site urL
         self.target = options.get('target','http://localhost:8080/plone')
     
-    def split_zclient_url(self, url):
-        """Split URL to ZPublisher.Client compatible format
-        
-        @param url: URL containing embedded HTTP Basic auth info, e.g. http://admin:admin@localhost:8080/yoursite
-        
-        @return: url, username, password
-        """
-        from urlparse import urlparse, urlunparse
-        import ZPublisher.Client
-        
-        # ('http', 'admin:admin@localhost:8080', '/gomobile/refman/', '', '', '')
-        parts = urlparse(url)
-        netloc = parts[1]
-        
-        auth, netloc = netloc.split("@")
-        username, password = auth.split(":")
-        
-        # Reconstruct URL without auth data
-        parts = [parts[0], netloc, parts[2], parts[3], parts[4], parts[5] ]
-        url = urlunparse(parts)
-        
-        # No ending slash allowed
-        if url.endswith("/"):
-            url = url[0:-1]
-            
-        return url, username, password
            
     def __iter__(self):
                 
-        # Resolve remote workflow tool.
-        # We can do remote XML-RPC traversing by using the dotted notation in the object graph 
 
-             
-        import ZPublisher.Client
-    
-        base_url, username, password = self.split_zclient_url(self.target)
-        
-        workflow_url = urllib.basejoin(base_url, "portal_workflow")            
-        wf_tool = ZPublisher.Client.Object(workflow_url, 
-                                       username=username, 
-                                       password=password,
-                                       )
-        
+        # URL of the Plone container we are populating which 
+        target = self.target
+        if not target.endwith("/"):            
+            target += "/"
+            
         for item in self.previous:
             keys = item.keys()
             
             # Apply defaultMatcher() function to extract necessary data
+            # 1) which item will be transitioned
+            # 2) with which transition
             pathkey = self.pathkey(*keys)[0]
             transitionskey = self.transitionskey(*keys)[0]
 
@@ -88,31 +58,28 @@ class RemoteWorkflowUpdaterSection(object):
             if isinstance(transitions, basestring):
                 transitions = (transitions,)
             
-            #remote_url = urllib.basejoin(base_url, path)
-            remote_url = base_url + "/" + path
-            
-            remote_url = remote_url.replace(".html", "")
-            
-            remote_object = ZPublisher.Client.Object(remote_url, 
-                                       username=username, 
-                                       password=password,
-                                       )
-
-                    
+                
+            remote_url = urllib.basejoin(target, path)
+            if not remote_url.endswith("/"):
+                remote_url += "/"
+                
+            #remote_url = remote_url.replace(".html", "")
     
             for transition in transitions:
-            
-                logger.info("Performing transition %s for item %s" % (transition, remote_url))
+    
+                
+                transition_trigger_url = urllib.basejoin(remote_url, "content_status_modify?workflow_action=" + transition)
+                logger.info("Performing transition %s for item %s" % (transition, transition_trigger_url))
                 
                 try:
                 
-                    # workflow_tool.doActionFor() cannot be called
-                    # for some reason using remote object traversing.
-                    # We do it in painful way.
-                    wf_tool.doActionFor(ob=remote_object, action=transition)
-                    
-                    print "Da?"
+                    f= urllib.urlopen(transition_trigger_url)
+                    data = f.read()
+                    print data
                 except:
+                    # Other than HTTP 200 OK should end up here,
+                    # unless URL is broken in which case Plone shows
+                    # "Your content was not found page"
                     logger.error("fail")
                     msg = "Remote workflow transition failed %s->%s" %(path,transition)
                     logger.log(logging.ERROR, msg, exc_info=True)
