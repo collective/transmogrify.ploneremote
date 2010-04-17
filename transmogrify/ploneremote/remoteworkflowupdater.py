@@ -10,11 +10,11 @@ from collective.transmogrifier.utils import defaultMatcher
 from Products.CMFCore.utils import getToolByName
 from Products.CMFCore.WorkflowCore import WorkflowException
 
-from 
+from base import AbstractRemoteCommand
 
 logger = logging.getLogger('Plone')
 
-class RemoteWorkflowUpdaterSection(object):
+class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
     """
     Do remote workflow state transition using Plone HTTP API.
     
@@ -23,28 +23,23 @@ class RemoteWorkflowUpdaterSection(object):
     classProvides(ISectionBlueprint)
     implements(ISection)
     
-    def __init__(self, transmogrifier, name, options, previous):
-        
-
-
     def readOptions(self, options):
         """ Read options give in pipeline.cfg. 
         """
         
+        # Call parent 
+        AbstractRemoteCommand.readOptions(self, options)
+        
         # Remote site / object URL containing HTTP Basic Auth username and password 
-        self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
-        self.transitionskey = defaultMatcher(options, 'transitions-key', name,
+        self.pathkey = defaultMatcher(options, 'path-key', self.name, 'path')
+        self.transitionskey = defaultMatcher(options, 'transitions-key', self.name,
                                              'transitions')
     def __iter__(self):
     
         self.checkOptions()
-                
-        # URL of the Plone container we are populating which 
-        target = self.target
-        if not target.endwith("/"):            
-            target += "/"
-            
+                            
         for item in self.previous:
+            
             keys = item.keys()
             
             # Apply defaultMatcher() function to extract necessary data
@@ -60,27 +55,30 @@ class RemoteWorkflowUpdaterSection(object):
             path, transitions = item[pathkey], item[transitionskey]
             if isinstance(transitions, basestring):
                 transitions = (transitions,)
-            
-
-                
-            remote_url = urllib.basejoin(target, path)
+                            
+            remote_url = urllib.basejoin(self.target, path)
             if not remote_url.endswith("/"):
                 remote_url += "/"
                 
-            #remote_url = remote_url.replace(".html", "")
-    
+
             for transition in transitions:
     
-                
                 transition_trigger_url = urllib.basejoin(remote_url, "content_status_modify?workflow_action=" + transition)
                 logger.info("Performing transition %s for item %s" % (transition, transition_trigger_url))
+                
+                from httplib import HTTPException
                 
                 try:
                 
                     f= urllib.urlopen(transition_trigger_url)
                     data = f.read()
-                    print data
-                except:
+                    
+                    # Use Plone not found page signature to detect bad URLs
+                    if "Please double check the web address" in data:
+                        import pdb ; pdb.set_trace()
+                        raise RuntimeError("Bad remote URL:" + transition_trigger_url)
+
+                except HTTPException, e:
                     # Other than HTTP 200 OK should end up here,
                     # unless URL is broken in which case Plone shows
                     # "Your content was not found page"

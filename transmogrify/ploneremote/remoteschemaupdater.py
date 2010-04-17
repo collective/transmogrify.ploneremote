@@ -41,7 +41,7 @@ class RemoteSchemaUpdaterSection(object):
             
             changed = False
             errors = []
-
+            
             # support field arguments via 'fieldname.argument' syntax
             # result is dict with tuple (value, fieldarguments)
             # stored in fields variable
@@ -60,9 +60,14 @@ class RemoteSchemaUpdaterSection(object):
                 multicall = xmlrpclib.MultiCall(proxy)
                 for key, parts in fields.items():
                     value, arguments = parts
+                
                     if type(value) == type(u''):
                         value = value.encode('utf8')
-
+                    elif value == None:
+                        # Do not update fields for which we have not received
+                        # values is transmogrify.htmlextractor
+                        continue
+                    
                     #getattr(proxy,'set%s'%key.capitalize())(value)
                     arguments.update(dict(value=value))
                     input = urllib.urlencode(arguments)

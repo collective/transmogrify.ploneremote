@@ -41,21 +41,37 @@ class AbstractRemoteCommand(object):
         
         @param options: Options as a dictionary as they appear in pipeline.cfg. Parsed INI format.    
         """    
+        
+        # Initialize common class attributes
+        self.name = name
+        self.previous = previous
+        self.context = transmogrifier.context
+        
         self.readOptions(options)
         
     def readOptions(self, options):
         """ Read options give in pipeline.cfg. 
+        
+        Initialize all parameters to None if they are not present.
+        Then the options can be safely checked in checkOptions() method.
         """
         
         # Remote site / object URL containing HTTP Basic Auth username and password 
-        self.target = option.get("target", None) 
+        self.target = options.get("target", None) 
+        
     
     def checkOptions(self):
         """ See that all necessary options have been set-up.
         
+        Note that we might want to modify the blueprint section
+        instance attributes in run-time e.g. for setting the remote
+        site URL and auth information, so we should not yet call checkOptions()
+        during the construction.
         """
         if not self.target:
             raise BadOptionException("Remote destination site must be externally configured")
                                
-                               
+        # Assume target ends with slash 
+        if not self.target.endswith("/"):            
+            self.target += "/"                               
         
