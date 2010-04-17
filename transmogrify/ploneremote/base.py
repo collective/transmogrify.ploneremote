@@ -6,12 +6,14 @@
 
 """
 
+import urllib
+
 from zope.interface import classProvides, implements
 
 from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import Matcher
-
+from collective.transmogrifier.utils import defaultMatcher
 
 class BadOptionException(RuntimeError):
     """ This is raised if the section blueprint is improperly configured """
@@ -26,7 +28,6 @@ class AbstractRemoteCommand(object):
     * ``target``: Remote Plone site to which upload
     
     """
-    classProvides(ISectionBlueprint)
     implements(ISection)
 
     
@@ -73,5 +74,76 @@ class AbstractRemoteCommand(object):
                                
         # Assume target ends with slash 
         if not self.target.endswith("/"):            
-            self.target += "/"                               
+            self.target += "/"              
+            
+    def extractKeyValue(self, item, matcher):                 
+        """ Try extract key-value information from Blueprint item.
         
+        @param item: Blueprint dictionary passed in __iter__()
+        
+        @param matcher: defaultMatcher() function used to extract key information
+        
+        @return: Value as a string or None if the information is not available
+        """
+
+        # Solve path key
+        keys = item.keys()
+        key = matcher(*keys)[0]      
+        return item.get(key, None)
+    
+    def extractTruthValue(self, item, matcher):         
+        """ Read boolean property from blueprint dictionary. 
+        
+        Blueprint itself can insert Python True or False object to dictionary::
+        
+            [mark-image-folders]
+            blueprint = collective.transmogrifier.sections.inserter
+            key = string:_exclude_from_navigation
+            value = python:True
+            condition = python:
+        
+        @return: True or False or None
+        """
+        value = self.extractKeyValue(item, matcher)
+        if value is None:
+            return None
+        
+        if not value in [True,False]:
+            raise RuntimeError("Invalid truth value:" + str(value))
+        
+        return value
+    
+class PathBasedAbstractRemoteCommand(AbstractRemoteCommand):
+    """
+    A remote command with the default logic to extract _path hint from blueprint item.
+    """
+    
+    def readOptions(self, options):
+        """ Read options give in pipeline.cfg. 
+        """
+        
+        # Call parent 
+        AbstractRemoteCommand.readOptions(self, options)
+        
+        # Remote site / object URL containing HTTP Basic Auth username and password.
+        # Note: self.pathkey is a function
+        self.pathkey = defaultMatcher(options, 'path-key', self.name, 'path')
+    
+
+    def extractPath(self, item):
+        """ Try extract path information from Blueprint item.
+        
+        @return: Item's path as a string or None if the information is not available
+        """
+        return self.extractKeyValue(item, self.pathkey)
+
+        
+    def constructRemoteURL(self, item):
+    
+        path = self.extractPath(item)
+        
+        remote_url = urllib.basejoin(self.target, path)
+        if not remote_url.endswith("/"):
+            remote_url += "/"
+    
+        return remote_url

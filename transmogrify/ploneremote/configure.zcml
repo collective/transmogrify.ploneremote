@@ -26,4 +26,7 @@
     <utility component=".remoteschemaupdater.RemoteSchemaUpdaterSection"
 		     name="transmogrify.ploneremote.remoteschemaupdater" />
 
+    <utility component=".remotenavigationexcluder.RemoteNavigationExcluderSection"
+                     name="transmogrify.ploneremote.remotenavigationexcluder" />
+
 </configure>
