@@ -6,12 +6,18 @@
     >
 
 
-	  <include package="collective.transmogrifier" file="meta.zcml"/>
+    <include package="collective.transmogrifier" file="meta.zcml"/>
+
+    <utility component=".remoteworkflowupdater.RemoteWorkflowUpdaterSection"
+		     name="transmogrify.ploneremote.remoteworkflowupdater" />
 
     <utility component=".remoteconstructor.RemoteConstructorSection"
 		     name="transmogrify.ploneremote.remoteconstructor" />
 
     <utility component=".remoteschemaupdater.RemoteSchemaUpdaterSection"
 		     name="transmogrify.ploneremote.remoteschemaupdater" />
+
+    <utility component=".remotenavigationexcluder.RemoteNavigationExcluderSection"
+                     name="transmogrify.ploneremote.remotenavigationexcluder" />
 
 </configure>
