@@ -2,22 +2,23 @@
     xmlns="http://namespaces.zope.org/zope"
     i18n_domain="pretaweb.funnelweb"
     xmlns:five="http://namespaces.zope.org/five"
-    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
-    >
-
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup">
 
     <include package="collective.transmogrifier" file="meta.zcml"/>
 
     <utility component=".remoteworkflowupdater.RemoteWorkflowUpdaterSection"
-		     name="transmogrify.ploneremote.remoteworkflowupdater" />
+             name="transmogrify.ploneremote.remoteworkflowupdater" />
 
     <utility component=".remoteconstructor.RemoteConstructorSection"
-		     name="transmogrify.ploneremote.remoteconstructor" />
+             name="transmogrify.ploneremote.remoteconstructor" />
 
     <utility component=".remoteschemaupdater.RemoteSchemaUpdaterSection"
-		     name="transmogrify.ploneremote.remoteschemaupdater" />
+             name="transmogrify.ploneremote.remoteschemaupdater" />
 
     <utility component=".remotenavigationexcluder.RemoteNavigationExcluderSection"
-                     name="transmogrify.ploneremote.remotenavigationexcluder" />
+             name="transmogrify.ploneremote.remotenavigationexcluder" />
+
+    <utility component=".remoteredirector.RemoteRedirectorSection"
+             name="transmogrify.ploneremote.remoteredirector" />
 
 </configure>
