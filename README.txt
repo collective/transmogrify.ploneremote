@@ -11,7 +11,7 @@ Plone site does not need any modifications, but vanilla Zope XML-RPC is used.
 Usage
 -----
 
-Four different blueprints are provided.
+Five different blueprints are provided.
 
 Remote constructor
 ====================
@@ -65,8 +65,36 @@ Takes the following parameters:
 
 * *target*: Remote site URL
 
+
+Redirector
+==========
+
+This blueprint adds redirection aliases to those content items that have changed
+it's paths during tranmogrification process. It takes into account item's
+*_orig_path* key set by webcrawler blueprint. Redirection uses
+Products.RedirectionTool Aliases form to add appropriate redirections. So this
+is required to install that addon in order to make
+*transmogrify.ploneremote.redirector* blueprint work.
+
+If *path* is not equal to *orig_path* then appropriate aliases is being added
+to local Plone utility (IRedirectionStorage) using Aliases form.
+
+Takes the following parameters:
+
+* *path-key*: which blueprint item dictionary key is used to extract the remote
+  path information or the item. Default value *path* .
+
+Example::
+
+        #
+        # Add content aliases for content that changed it's paths
+        # 
+        [redirector]
+        blueprint = transmogrify.ploneremote.remoteredirector
+
+
 Making remote site URL configurable
-------------------------------------
+-----------------------------------
 
 All blueprints take remote site URL parameter.
 Instead of hardcoding this to your *pipeline.cfg*
@@ -104,7 +132,8 @@ you can make it configurable from the command line using the following
               localconstructor=dict(output=url('ploneout')),
               ploneuploader=dict(target=argv[1]),
               schemaupdater=dict(target=argv[1]),
-              publish=dict(target=argv[1])
+              publish=dict(target=argv[1]),
+              redirector=dict(target=argv[1]),
               )
         arguments = 'pipeline.cfg', args
         entry-points = toplone=transmogrify.htmltesting.runner:runner
@@ -121,4 +150,4 @@ In the order of apperance
 
 * Mikko Ohtamaa, mikko@mfabrik.com, http://mfabrik.com
 
-
+* Vitaliy Podoba, vitaliypodoba@gmail.com
