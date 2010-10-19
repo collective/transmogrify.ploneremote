@@ -25,12 +25,17 @@ class RemoteConstructorSection(object):
         self.typekey = defaultMatcher(options, 'type-key', name, 'type',
                                       ('portal_type', 'Type'))
         self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
-        self.target = options.get('target','http://localhost:8080/plone')
-        self.target = self.target.rstrip('/')+'/'
+        self.target = options.get('target','')
+        if self.target:
+            self.target = self.target.rstrip('/')+'/'
 
     def __iter__(self):
-        basepath = xmlrpclib.ServerProxy(self.target).getPhysicalPath()
+        if self.target:
+            basepath = xmlrpclib.ServerProxy(self.target).getPhysicalPath()
         for item in self.previous:
+            if not self.target:
+                yield item
+                continue
             keys = item.keys()
             typekey = self.typekey(*keys)[0]
             pathkey = self.pathkey(*keys)[0]

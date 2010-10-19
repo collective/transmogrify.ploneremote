@@ -39,6 +39,9 @@ class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
         self.checkOptions()
                             
         for item in self.previous:
+            if not self.target:
+                yield item
+                continue
             
             keys = item.keys()
             
