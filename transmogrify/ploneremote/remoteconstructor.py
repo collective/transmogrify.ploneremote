@@ -2,6 +2,7 @@ from zope.interface import classProvides, implements
 from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import defaultMatcher
+from transmogrify.pathsorter.treeserializer import TreeSerializer
 
 from Acquisition import aq_base
 from Products.CMFCore.utils import getToolByName
@@ -18,13 +19,13 @@ class RemoteConstructorSection(object):
     "Drop in replacement for constructor that will use xmlprc calls to construct content on a remote plone site"
 
     def __init__(self, transmogrifier, name, options, previous):
-        self.previous = previous
+        self.previous = TreeSerializer(transmogrifier, name, options, previous)
         self.context = transmogrifier.context
         #self.ttool = getToolByName(self.context, 'portal_types')
 
         self.typekey = defaultMatcher(options, 'type-key', name, 'type',
-                                      ('portal_type', 'Type'))
-        self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
+                                      ('portal_type', 'Type','_type'))
+        self.pathkey = defaultMatcher(options, 'path-key', name, '_path')
         self.target = options.get('target','')
         if self.target:
             self.target = self.target.rstrip('/')+'/'
@@ -77,6 +78,8 @@ class RemoteConstructorSection(object):
                             pass
                         else:
                             raise
+                    except xmlrpclib.Fault:
+                        pass
                     break
                 except xmlrpclib.ProtocolError,e:
                     if e.errcode == 503:
