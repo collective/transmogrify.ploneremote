@@ -18,7 +18,9 @@ class RemoteSchemaUpdaterSection(object):
         self.previous = previous
         self.context = transmogrifier.context
         self.target = options['target']
-        self.target = self.target.rstrip('/')+'/'
+        if self.target:
+            self.target = self.target.rstrip('/')+'/'
+        
 
         if 'path-key' in options:
             pathkeys = options['path-key'].splitlines()
@@ -29,6 +31,8 @@ class RemoteSchemaUpdaterSection(object):
 
     def __iter__(self):
         for item in self.previous:
+            if not self.target:
+                yield item; continue
 
             pathkey = self.pathkey(*item.keys())[0]
 
@@ -87,6 +91,8 @@ class RemoteSchemaUpdaterSection(object):
                             continue
                         else:
                             raise
+                    except xmlrpclib.Fault,e:
+                        pass
 
 
             yield item
