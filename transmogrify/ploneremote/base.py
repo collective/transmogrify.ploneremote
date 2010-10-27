@@ -69,11 +69,11 @@ class AbstractRemoteCommand(object):
         site URL and auth information, so we should not yet call checkOptions()
         during the construction.
         """
-        if not self.target:
-            raise BadOptionException("Remote destination site must be externally configured")
+        #if not self.target:
+        #    raise BadOptionException("Remote destination site must be externally configured")
                                
         # Assume target ends with slash 
-        if not self.target.endswith("/"):            
+        if self.target and not self.target.endswith("/"):            
             self.target += "/"              
             
     def extractKeyValue(self, item, matcher):                 
