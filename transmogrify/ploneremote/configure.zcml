@@ -29,4 +29,8 @@
     <utility component=".remotenavigationexcluder.RemoteNavigationExcluderSection"
                      name="transmogrify.ploneremote.remotenavigationexcluder" />
 
+    <utility component=".remoteprune.RemotePruneSection"
+                     name="transmogrify.ploneremote.remoteprune" />
+
+
 </configure>
