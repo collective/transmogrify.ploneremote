@@ -138,9 +138,16 @@ class PathBasedAbstractRemoteCommand(AbstractRemoteCommand):
         return self.extractKeyValue(item, self.pathkey)
 
         
-    def constructRemoteURL(self, item):
+    def constructRemoteURL(self, item, allow_index_html=False):
+        """
+        @parma allow_index_html: if path is index.html it falls back to the default folder
+        """
     
         path = self.extractPath(item)
+        
+        if allow_index_html:
+            if path.endswith("index.html"):
+                path = path[0:-len("index.html")]        
         
         remote_url = urllib.basejoin(self.target, path)
         if not remote_url.endswith("/"):

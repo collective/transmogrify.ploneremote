@@ -21,4 +21,8 @@
     <utility component=".remoteredirector.RemoteRedirectorSection"
              name="transmogrify.ploneremote.remoteredirector" />
 
+    <utility component=".remoteprune.RemotePruneSection"
+                     name="transmogrify.ploneremote.remoteprune" />
+
+
 </configure>
