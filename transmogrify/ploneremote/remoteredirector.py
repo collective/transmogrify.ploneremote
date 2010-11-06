@@ -26,7 +26,7 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand ):
         self.checkOptions()
         for item in self.previous:
             path = self.extractPath(item)
-            if not path:
+            if not path or not self.target:
                 yield item
                 continue
             

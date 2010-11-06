@@ -36,7 +36,7 @@ class RemoteNavigationExcluderSection(PathBasedAbstractRemoteCommand):
             path = self.extractPath(item)
             exclude_from_nav = self.extractTruthValue(item, self.exclusion)
             
-            if path is None or exclude_from_nav is None: 
+            if path is None or exclude_from_nav is None or not self.target: 
                 # The blueprint item did not provide necessary
                 # info to perform this pipeline transformation
                 yield item
