@@ -25,6 +25,14 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand ):
     def __iter__(self):
         self.checkOptions()
         for item in self.previous:
+            keys = item.keys()
+            typekey = self.typekey(*keys)[0]
+            pathkey = self.pathkey(*keys)[0]
+
+            if not (typekey and pathkey):             # not enough info
+                yield item
+                continue
+
             path = self.extractPath(item)
             if not path or not self.target:
                 yield item

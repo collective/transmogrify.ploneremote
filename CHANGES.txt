@@ -1,0 +1,20 @@
+1.0b1 (2010-11-08)
+------------------
+
+- Added remote folder pruning ["Mikko Ohtamaa"]
+
+- skips if there are no target ["Dylan Jay"]
+
+- add remoteredirector blueprint ["Vitaliy Podoba"]
+
+- Added exclude_from_nav remote setting ["Mikko Ohtamaa"]
+
+- added remote workflow updater ["Mikko Ohtamaa"]
+
+
+1.0a1 (2010-03-22)
+----------------
+
+- split from pretaweb.funnelweb and released
+  ["Dylan Jay"]
+

@@ -128,6 +128,9 @@ class PathBasedAbstractRemoteCommand(AbstractRemoteCommand):
         # Remote site / object URL containing HTTP Basic Auth username and password.
         # Note: self.pathkey is a function
         self.pathkey = defaultMatcher(options, 'path-key', self.name, 'path')
+
+        self.typekey = defaultMatcher(options, 'type-key', self.name, 'type',
+                                      ('portal_type', 'Type','_type'))
     
 
     def extractPath(self, item):
@@ -137,6 +140,12 @@ class PathBasedAbstractRemoteCommand(AbstractRemoteCommand):
         """
         return self.extractKeyValue(item, self.pathkey)
 
+    def extractType(self, item):
+        """ Try extract type information from Blueprint item.
+        
+        @return: Item's type as a string or None if the information is not available
+        """
+        return self.extractKeyValue(item, self.typekey)
         
     def constructRemoteURL(self, item, allow_index_html=False):
         """

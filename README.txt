@@ -146,7 +146,7 @@ Authors
 
 In the order of apperance
 
-* Dylan Jay
+* Dylan Jay, software@pretaweb.com
 
 * Mikko Ohtamaa, mikko@mfabrik.com, http://mfabrik.com
 

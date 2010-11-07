@@ -25,7 +25,7 @@ class RemoteConstructorSection(object):
 
         self.typekey = defaultMatcher(options, 'type-key', name, 'type',
                                       ('portal_type', 'Type','_type'))
-        self.pathkey = defaultMatcher(options, 'path-key', name, '_path')
+        self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
         self.target = options.get('target','')
         if self.target:
             self.target = self.target.rstrip('/')+'/'
@@ -38,13 +38,12 @@ class RemoteConstructorSection(object):
                 yield item
                 continue
             keys = item.keys()
-            typekey = self.typekey(*keys)[0]
-            pathkey = self.pathkey(*keys)[0]
-
-            if not (typekey and pathkey):             # not enough info
+            type_, path = item.get(self.typekey(*keys)[0]), item.get(self.pathkey(*keys)[0])
+            
+            if not (type_ and path):             # not enough info
                 yield item; continue
 
-            type_, path = item[typekey], item[pathkey]
+
 
             #fti = self.ttool.getTypeInfo(type_)
             #if fti is None:                           # not an existing type
