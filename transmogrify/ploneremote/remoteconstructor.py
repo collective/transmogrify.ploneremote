@@ -10,7 +10,7 @@ import xmlrpclib
 import urllib
 from urlparse import urlparse, urljoin
 import logging
-logger = logging.getLogger('Plone')
+logger = logging.getLogger('ploneupload')
 
 class RemoteConstructorSection(object):
     classProvides(ISectionBlueprint)
@@ -79,6 +79,7 @@ class RemoteConstructorSection(object):
                             raise
                     except xmlrpclib.Fault:
                         pass
+                    logger.info("Created %s"% rpath)
                     break
                 except xmlrpclib.ProtocolError,e:
                     if e.errcode == 503:

@@ -12,7 +12,7 @@ from Products.CMFCore.WorkflowCore import WorkflowException
 
 from base import AbstractRemoteCommand
 
-logger = logging.getLogger('Plone')
+logger = logging.getLogger('plonepublish')
 
 class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
     """

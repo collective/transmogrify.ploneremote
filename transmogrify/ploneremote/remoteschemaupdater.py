@@ -7,7 +7,7 @@ from collective.transmogrifier.utils import defaultKeys
 import urllib
 import xmlrpclib
 import logging
-logger = logging.getLogger('Plone')
+logger = logging.getLogger('ploneupdate')
 
 
 class RemoteSchemaUpdaterSection(object):
@@ -50,6 +50,7 @@ class RemoteSchemaUpdaterSection(object):
             # result is dict with tuple (value, fieldarguments)
             # stored in fields variable
             fields = {}
+            updated = []
             for key, value in item.iteritems():
                 if key.startswith('_'):
                     continue
@@ -70,6 +71,7 @@ class RemoteSchemaUpdaterSection(object):
                     elif value == None:
                         # Do not update fields for which we have not received
                         # values is transmogrify.htmlextractor
+                        logger.warning('%s %s=%s'%(path, key, value))
                         continue
                     
                     #getattr(proxy,'set%s'%key.capitalize())(value)
@@ -78,21 +80,24 @@ class RemoteSchemaUpdaterSection(object):
                     f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
                     nurl = f.geturl()
                     info = f.info()
-                
-                for attempt in range(0,3):
-                    try:
-                        if '_defaultpage' in item:
-                            proxy.setDefaultPage(item['_defaultpage']) 
-                        #result = multicall()
+                    updated.append(key)
+            if fields:
+                logger.info('updated %s fields=%s'%(path, fields.keys()))
+            
+            for attempt in range(0,3):
+                try:
+                    if '_defaultpage' in item:
+                        proxy.setDefaultPage(item['_defaultpage']) 
                         proxy.update() #does indexing
-                        break
-                    except xmlrpclib.ProtocolError,e:
-                        if e.errcode == 503:
-                            continue
-                        else:
-                            raise
-                    except xmlrpclib.Fault,e:
-                        pass
+                        logger.info('%s.setDefaultPath=%s'%(path, item['_defaultpage']))
+                    break
+                except xmlrpclib.ProtocolError,e:
+                    if e.errcode == 503:
+                        continue
+                    else:
+                        raise
+                except xmlrpclib.Fault,e:
+                    pass
 
 
             yield item
