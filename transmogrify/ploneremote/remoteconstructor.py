@@ -10,7 +10,6 @@ import xmlrpclib
 import urllib
 from urlparse import urlparse, urljoin
 import logging
-logger = logging.getLogger('ploneupload')
 
 class RemoteConstructorSection(object):
     classProvides(ISectionBlueprint)
@@ -27,6 +26,7 @@ class RemoteConstructorSection(object):
                                       ('portal_type', 'Type','_type'))
         self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
         self.target = options.get('target','')
+        self.logger = logging.getLogger(name)
         if self.target:
             self.target = self.target.rstrip('/')+'/'
 
@@ -63,10 +63,13 @@ class RemoteConstructorSection(object):
                     try:
                         #test paths in case of acquition
                         rpath = proxy.getPhysicalPath()
+                        #TODO: should check type to see if it's correct?
                         rpath = rpath[len(basepath):]
                         if path == '/'.join(rpath):
+                            self.logger.info("%s already exists. Not creating"% ('/'.join(rpath)) )
                             break
                     except xmlrpclib.Fault:
+                        self.logger.warning("Failuire while creating '%s' of type '%s'"% (rpath, type_) )
                         pass
                     purl = urllib.basejoin(self.target,container)
                     pproxy = xmlrpclib.ServerProxy(purl)
@@ -79,7 +82,7 @@ class RemoteConstructorSection(object):
                             raise
                     except xmlrpclib.Fault:
                         pass
-                    logger.info("Created %s"% rpath)
+                    self.logger.info("%s Created with type=%s"% (rpath, type_) )
                     break
                 except xmlrpclib.ProtocolError,e:
                     if e.errcode == 503:

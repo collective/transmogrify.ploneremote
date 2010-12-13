@@ -10,8 +10,6 @@ from collective.transmogrifier.utils import defaultMatcher
 from base import PathBasedAbstractRemoteCommand 
 
 
-logger = logging.getLogger('transmogrify.ploneremote.remoteredirector')
-
 class RemoteRedirectorSection(PathBasedAbstractRemoteCommand ):
     """
     Remotely add redirection to content objects using Products.RedirectionTool
@@ -52,7 +50,7 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand ):
             url = urllib.basejoin(self.constructRemoteURL(item),
                 "@@manage-aliases?redirection=%s&form.button.Add=Add" %
                 urllib.quote_plus(orig_path))
-            logger.info("Adding redirection from %s to %s" % (orig_path, path))
+            self.logger.info("%s Adding redirection from %s" % (path, orig_path))
                 
             try:
                 f = urllib.urlopen(url)
@@ -67,9 +65,9 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand ):
                 # Other than HTTP 200 OK should end up here,
                 # unless URL is broken in which case Plone shows
                 # "Your content was not found page"
-                logger.error("fail")
+                self.logger.error("fail")
                 msg = "Adding redirection from %s to %s failed (url: %s)" % (
                     path, orig_path, url)
-                logger.log(logging.ERROR, msg, exc_info=True)
+                self.logger.log(logging.ERROR, msg, exc_info=True)
             
             yield item

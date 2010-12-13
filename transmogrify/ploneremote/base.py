@@ -14,6 +14,7 @@ from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import Matcher
 from collective.transmogrifier.utils import defaultMatcher
+import logging
 
 class BadOptionException(RuntimeError):
     """ This is raised if the section blueprint is improperly configured """
@@ -49,6 +50,7 @@ class AbstractRemoteCommand(object):
         self.context = transmogrifier.context
         
         self.readOptions(options)
+        self.logger = logging.getLogger(name)
         
     def readOptions(self, options):
         """ Read options give in pipeline.cfg. 

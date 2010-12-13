@@ -7,7 +7,6 @@ from collective.transmogrifier.utils import defaultKeys
 import urllib
 import xmlrpclib
 import logging
-logger = logging.getLogger('ploneupdate')
 
 
 class RemoteSchemaUpdaterSection(object):
@@ -18,6 +17,7 @@ class RemoteSchemaUpdaterSection(object):
         self.previous = previous
         self.context = transmogrifier.context
         self.target = options['target']
+        self.logger = logging.getLogger(name)
         if self.target:
             self.target = self.target.rstrip('/')+'/'
         
@@ -51,6 +51,8 @@ class RemoteSchemaUpdaterSection(object):
             # stored in fields variable
             fields = {}
             updated = []
+            proxy = xmlrpclib.ServerProxy(url)
+            multicall = xmlrpclib.MultiCall(proxy)
             for key, value in item.iteritems():
                 if key.startswith('_'):
                     continue
@@ -61,8 +63,6 @@ class RemoteSchemaUpdaterSection(object):
                 else:
                     fields[parts[0]][1][parts[1]] = value
                     
-                proxy = xmlrpclib.ServerProxy(url)
-                multicall = xmlrpclib.MultiCall(proxy)
                 for key, parts in fields.items():
                     value, arguments = parts
                 
@@ -71,7 +71,7 @@ class RemoteSchemaUpdaterSection(object):
                     elif value == None:
                         # Do not update fields for which we have not received
                         # values is transmogrify.htmlextractor
-                        logger.warning('%s %s=%s'%(path, key, value))
+                        self.logger.warning('%s %s=%s'%(path, key, value))
                         continue
                     
                     #getattr(proxy,'set%s'%key.capitalize())(value)
@@ -82,14 +82,14 @@ class RemoteSchemaUpdaterSection(object):
                     info = f.info()
                     updated.append(key)
             if fields:
-                logger.info('updated %s fields=%s'%(path, fields.keys()))
+                self.logger.info('%s set fields=%s'%(path, fields.keys()))
             
             for attempt in range(0,3):
                 try:
                     if '_defaultpage' in item:
                         proxy.setDefaultPage(item['_defaultpage']) 
                         proxy.update() #does indexing
-                        logger.info('%s.setDefaultPath=%s'%(path, item['_defaultpage']))
+                        self.logger.info('%s.setDefaultPath=%s'%(path, item['_defaultpage']))
                     break
                 except xmlrpclib.ProtocolError,e:
                     if e.errcode == 503:

@@ -12,7 +12,6 @@ from Products.CMFCore.WorkflowCore import WorkflowException
 
 from base import AbstractRemoteCommand
 
-logger = logging.getLogger('plonepublish')
 
 class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
     """
@@ -67,7 +66,7 @@ class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
             for transition in transitions:
     
                 transition_trigger_url = urllib.basejoin(remote_url, "content_status_modify?workflow_action=" + transition)
-                logger.info("Performing transition %s for item %s" % (transition, transition_trigger_url))
+                self.logger.info("%s performing transition '%s'" % (path, transition))
                 
                 from httplib import HTTPException
                 
@@ -85,8 +84,8 @@ class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
                     # Other than HTTP 200 OK should end up here,
                     # unless URL is broken in which case Plone shows
                     # "Your content was not found page"
-                    logger.error("fail")
+                    self.logger.error("fail")
                     msg = "Remote workflow transition failed %s->%s" %(path,transition)
-                    logger.log(logging.ERROR, msg, exc_info=True)
+                    self.logger.log(logging.ERROR, msg, exc_info=True)
             
             yield item
