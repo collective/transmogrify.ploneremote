@@ -69,7 +69,7 @@ class RemoteConstructorSection(object):
                             self.logger.info("%s already exists. Not creating"% ('/'.join(rpath)) )
                             break
                     except xmlrpclib.Fault:
-                        self.logger.warning("Failuire while creating '%s' of type '%s'"% (rpath, type_) )
+                        self.logger.warning("Failuire while creating '%s' of type '%s'"% (url, type_) )
                         pass
                     purl = urllib.basejoin(self.target,container)
                     pproxy = xmlrpclib.ServerProxy(purl)
@@ -82,7 +82,7 @@ class RemoteConstructorSection(object):
                             raise
                     except xmlrpclib.Fault:
                         pass
-                    self.logger.info("%s Created with type=%s"% (rpath, type_) )
+                    self.logger.info("%s Created with type=%s"% (path, type_) )
                     break
                 except xmlrpclib.ProtocolError,e:
                     if e.errcode == 503:
