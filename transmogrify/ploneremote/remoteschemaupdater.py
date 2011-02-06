@@ -65,15 +65,17 @@ class RemoteSchemaUpdaterSection(object):
                     
                 for key, parts in fields.items():
                     value, arguments = parts
-                
+
                     if type(value) == type(u''):
                         value = value.encode('utf8')
-                    elif value == None:
+                    elif getattr(value,'read', None):
+                        value = value.read()
+                    elif value is None:
                         # Do not update fields for which we have not received
                         # values is transmogrify.htmlextractor
                         self.logger.warning('%s %s=%s'%(path, key, value))
                         continue
-                    
+
                     #getattr(proxy,'set%s'%key.capitalize())(value)
                     arguments.update(dict(value=value))
                     input = urllib.urlencode(arguments)
