@@ -1,6 +1,7 @@
 1.0b3 (2011-02-06)
 ------------------
 - handle uploading files using less memory
+- fix bug in debug output
 
 1.0b2 (2010-12-13)
 ------------------
