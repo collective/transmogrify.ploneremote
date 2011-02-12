@@ -69,7 +69,12 @@ class RemoteSchemaUpdaterSection(object):
                     if type(value) == type(u''):
                         value = value.encode('utf8')
                     elif getattr(value,'read', None):
-                        value = value.read()
+                        file = value
+                        value = file.read()
+                        try:
+                            file.seek(0)
+                        except AttributeError:
+                            file.close()
                     elif value is None:
                         # Do not update fields for which we have not received
                         # values is transmogrify.htmlextractor
