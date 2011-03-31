@@ -66,23 +66,24 @@ class RemoteConstructorSection(object):
                         #TODO: should check type to see if it's correct?
                         rpath = rpath[len(basepath):]
                         if path == '/'.join(rpath):
-                            self.logger.info("%s already exists. Not creating"% ('/'.join(rpath)) )
+                            self.logger.debug("%s already exists. Not creating"% ('/'.join(rpath)) )
                             break
                     except xmlrpclib.Fault:
-                        self.logger.warning("Failuire while creating '%s' of type '%s'"% (url, type_) )
+                        # Doesn't already exist
                         pass
                     purl = urllib.basejoin(self.target,container)
                     pproxy = xmlrpclib.ServerProxy(purl)
                     try:
                         pproxy.invokeFactory(type_, id)
+                        self.logger.info("%s Created with type=%s"% (path, type_) )
                     except xmlrpclib.ProtocolError,e:
                         if e.errcode == 302:
                             pass
                         else:
                             raise
                     except xmlrpclib.Fault:
+                        self.logger.warning("Failuire while creating '%s' of type '%s'"% (path, type_) )
                         pass
-                    self.logger.info("%s Created with type=%s"% (path, type_) )
                     break
                 except xmlrpclib.ProtocolError,e:
                     if e.errcode == 503:
