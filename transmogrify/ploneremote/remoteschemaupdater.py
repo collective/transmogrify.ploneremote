@@ -53,41 +53,44 @@ class RemoteSchemaUpdaterSection(object):
             updated = []
             proxy = xmlrpclib.ServerProxy(url)
             multicall = xmlrpclib.MultiCall(proxy)
+            # handle complex fields e.g. image = ..., image.filename = 'blah.gif', image.mimetype = 'image/gif'
             for key, value in item.iteritems():
                 if key.startswith('_'):
                     continue
                 parts = key.split('.',1)
-                fields.setdefault(parts[0], [None,{}])
+                key = parts[0]
+                fields.setdefault(key, [None,{}])
                 if len(parts)==1:
-                    fields[parts[0]][0] = value
+                    fields[key][0] = value
                 else:
-                    fields[parts[0]][1][parts[1]] = value
+                    subkey = parts[1]
+                    fields[key][1][subkey] = value
                     
-                for key, parts in fields.items():
-                    value, arguments = parts
+            for key, parts in fields.items():
+                value, arguments = parts
 
-                    if type(value) == type(u''):
-                        value = value.encode('utf8')
-                    elif getattr(value,'read', None):
-                        file = value
-                        value = file.read()
-                        try:
-                            file.seek(0)
-                        except AttributeError:
-                            file.close()
-                    elif value is None:
-                        # Do not update fields for which we have not received
-                        # values is transmogrify.htmlextractor
-                        self.logger.warning('%s %s=%s'%(path, key, value))
-                        continue
+                if type(value) == type(u''):
+                    value = value.encode('utf8')
+                elif getattr(value,'read', None):
+                    file = value
+                    value = file.read()
+                    try:
+                        file.seek(0)
+                    except AttributeError:
+                        file.close()
+                elif value is None:
+                    # Do not update fields for which we have not received
+                    # values is transmogrify.htmlextractor
+                    self.logger.warning('%s %s=%s'%(path, key, value))
+                    continue
 
-                    #getattr(proxy,'set%s'%key.capitalize())(value)
-                    arguments.update(dict(value=value))
-                    input = urllib.urlencode(arguments)
-                    f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
-                    nurl = f.geturl()
-                    info = f.info()
-                    updated.append(key)
+                #getattr(proxy,'set%s'%key.capitalize())(value)
+                arguments.update(dict(value=value))
+                input = urllib.urlencode(arguments)
+                f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
+                nurl = f.geturl()
+                info = f.info()
+                updated.append(key)
             if fields:
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
             
