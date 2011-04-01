@@ -91,6 +91,9 @@ class RemoteSchemaUpdaterSection(object):
                 nurl = f.geturl()
                 info = f.info()
                 updated.append(key)
+            if '_mimetype' in item:
+                # Without this plone 4.1 doesn't update html correctly
+                proxy.setContentType(item['_mimetype'])
             if fields:
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
             
