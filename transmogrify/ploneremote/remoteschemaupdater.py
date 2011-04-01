@@ -65,6 +65,8 @@ class RemoteSchemaUpdaterSection(object):
                 else:
                     subkey = parts[1]
                     fields[key][1][subkey] = value
+            if '_defaultpage' in item:
+                fields['DefaultPage'] = (item['_defaultpage'],{})
                     
             for key, parts in fields.items():
                 value, arguments = parts
@@ -84,33 +86,42 @@ class RemoteSchemaUpdaterSection(object):
                     self.logger.warning('%s %s=%s'%(path, key, value))
                     continue
 
-                #getattr(proxy,'set%s'%key.capitalize())(value)
-                arguments.update(dict(value=value))
-                input = urllib.urlencode(arguments)
-                f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
-                nurl = f.geturl()
-                info = f.info()
+                method = key[0].upper()+key[1:]
+                if arguments:
+                    #need to use urllib for keywork arguments
+                    arguments.update(dict(value=value))
+                    input = urllib.urlencode(arguments)
+                    f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
+                    nurl = f.geturl()
+                    info = f.info()
+                    #print method + str(arguments)
+                    if info.status != '':
+                        import pdb; pdb.set_trace()
+                        raise Exception(str(f.read()))
+                else:
+                    # setModificationDate doesn't use 'value' keyword
+                    getattr(proxy,'set%s'%method)(value)
                 updated.append(key)
             if '_mimetype' in item:
                 # Without this plone 4.1 doesn't update html correctly
                 proxy.setContentType(item['_mimetype'])
             if fields:
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
-            
-            for attempt in range(0,3):
-                try:
-                    if '_defaultpage' in item:
-                        proxy.setDefaultPage(item['_defaultpage']) 
-                        proxy.update() #does indexing
-                        self.logger.info('%s.setDefaultPath=%s'%(path, item['_defaultpage']))
-                    break
-                except xmlrpclib.ProtocolError,e:
-                    if e.errcode == 503:
-                        continue
-                    else:
-                        raise
-                except xmlrpclib.Fault,e:
-                    pass
+                proxy.update() #does indexing
+
+#            for attempt in range(0,3):
+#                try:
+#                    if '_defaultpage' in item:
+#                        proxy.setDefaultPage(item['_defaultpage'])
+#                        self.logger.info('%s.setDefaultPath=%s'%(path, item['_defaultpage']))
+#                    break
+#                except xmlrpclib.ProtocolError,e:
+#                    if e.errcode == 503:
+#                        continue
+#                    else:
+#                        raise
+#                except xmlrpclib.Fault,e:
+#                    pass
 
 
             yield item
