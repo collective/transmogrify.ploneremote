@@ -67,7 +67,10 @@ class RemoteSchemaUpdaterSection(object):
                     fields[key][1][subkey] = value
             if '_defaultpage' in item:
                 fields['DefaultPage'] = (item['_defaultpage'],{})
-                    
+            if '_mimetype' in item:
+                # Without this plone 4.1 doesn't update html correctly
+                fields['ContentType'] = (item['_mimetype'],{})
+
             for key, parts in fields.items():
                 value, arguments = parts
 
@@ -96,15 +99,16 @@ class RemoteSchemaUpdaterSection(object):
                     info = f.info()
                     #print method + str(arguments)
                     if info.status != '':
-                        import pdb; pdb.set_trace()
-                        raise Exception(str(f.read()))
+                        e = str(f.read())
+                        f.close()
+                        self.logger.error("%s.set%s(%s) raised %s"%(path,method,arguments,e))
                 else:
                     # setModificationDate doesn't use 'value' keyword
-                    getattr(proxy,'set%s'%method)(value)
+                    try:
+                        getattr(proxy,'set%s'%method)(value)
+                    except xmlrpclib.Fault, e:
+                        self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
                 updated.append(key)
-            if '_mimetype' in item:
-                # Without this plone 4.1 doesn't update html correctly
-                proxy.setContentType(item['_mimetype'])
             if fields:
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
                 proxy.update() #does indexing
