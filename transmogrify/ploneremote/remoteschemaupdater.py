@@ -31,6 +31,7 @@ class RemoteSchemaUpdaterSection(object):
 
     def __iter__(self):
         for item in self.previous:
+                    
             if not self.target:
                 yield item; continue
 
@@ -41,7 +42,9 @@ class RemoteSchemaUpdaterSection(object):
 
             path = item[pathkey]
             
-            url = urllib.basejoin(self.target, path)
+            # XXX Why basejoin?
+            # url = urllib.basejoin(self.target, path)
+            url = self.target + path
             
             changed = False
             errors = []
@@ -51,6 +54,7 @@ class RemoteSchemaUpdaterSection(object):
             # stored in fields variable
             fields = {}
             updated = []
+            
             proxy = xmlrpclib.ServerProxy(url)
             multicall = xmlrpclib.MultiCall(proxy)
             # handle complex fields e.g. image = ..., image.filename = 'blah.gif', image.mimetype = 'image/gif'
@@ -110,6 +114,7 @@ class RemoteSchemaUpdaterSection(object):
                         self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
                 updated.append(key)
             if fields:
+                
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
                 proxy.update() #does indexing
 
