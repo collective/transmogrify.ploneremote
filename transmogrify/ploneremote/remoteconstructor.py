@@ -82,7 +82,7 @@ class RemoteConstructorSection(object):
                         else:
                             raise
                     except xmlrpclib.Fault:
-                        self.logger.warning("Failuire while creating '%s' of type '%s'"% (path, type_) )
+                        self.logger.warning("Failure while creating '%s' of type '%s'"% (path, type_) )
                         pass
                     break
                 except xmlrpclib.ProtocolError,e:
