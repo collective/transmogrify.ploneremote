@@ -58,7 +58,10 @@ class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
             if isinstance(transitions, basestring):
                 transitions = (transitions,)
                             
-            remote_url = urllib.basejoin(self.target, path)
+            #remote_url = urllib.basejoin(self.target, path)
+
+            remote_url = self.target + "/" + path
+
             if not remote_url.endswith("/"):
                 remote_url += "/"
                 
