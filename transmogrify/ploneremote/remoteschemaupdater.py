@@ -116,7 +116,11 @@ class RemoteSchemaUpdaterSection(object):
             if fields:
                 
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
-                proxy.update() #does indexing
+                try:
+                    proxy.update() #does indexing
+                except:
+                    # Keep going!
+                    pass
 
 #            for attempt in range(0,3):
 #                try:

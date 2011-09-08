@@ -78,10 +78,13 @@ class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
                     f= urllib.urlopen(transition_trigger_url)
                     data = f.read()
                     
-                    # Use Plone not found page signature to detect bad URLs
-                    if "Please double check the web address" in data:
-                        import pdb ; pdb.set_trace()
-                        raise RuntimeError("Bad remote URL:" + transition_trigger_url)
+                    # XXX Keep going!
+
+
+                    ## Use Plone not found page signature to detect bad URLs
+                    #if "Please double check the web address" in data:
+                    #    import pdb ; pdb.set_trace()
+                    #    raise RuntimeError("Bad remote URL:" + transition_trigger_url)
 
                 except HTTPException, e:
                     # Other than HTTP 200 OK should end up here,
