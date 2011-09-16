@@ -27,6 +27,7 @@ setup(name='transmogrify.ploneremote',
           'setuptools',
           # -*- Extra requirements: -*-
           'collective.transmogrifier',
+          'transmogrify.pathsorter',
           ],
       entry_points="""
             [z3c.autoinclude.plugin]
