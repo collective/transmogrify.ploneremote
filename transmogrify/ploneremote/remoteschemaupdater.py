@@ -112,6 +112,8 @@ class RemoteSchemaUpdaterSection(object):
                         getattr(proxy,'set%s'%method)(value)
                     except xmlrpclib.Fault, e:
                         self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
+                    except xmlrpclib.ProtocolError, e:
+                        self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
                 updated.append(key)
             if fields:
                 
