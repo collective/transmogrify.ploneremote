@@ -71,6 +71,9 @@ class RemoteConstructorSection(object):
                     except xmlrpclib.Fault:
                         # Doesn't already exist
                         pass
+                    except xmlrpclib.ProtocolError:
+                        self.logger.error("%s, %s, %s, %s: xmlrpc protocol error" % (url, proxy, container, id))
+        
                     purl = urllib.basejoin(self.target,container)
                     pproxy = xmlrpclib.ServerProxy(purl)
                     try:
