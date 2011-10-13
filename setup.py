@@ -5,16 +5,18 @@ version = '1.0b5'
 
 setup(name='transmogrify.ploneremote',
       version=version,
-      description="Transmogrifier blueprints for uploading content via xmlrpc to a plone site",
+      description="""Transmogrifier blueprints for uploading content
+        via xmlrpc to a plone site""",
       long_description=open('README.rst').read() + '\n' +
-                       #open(os.path.join("transmogrify", "ploneremote", "webcrawler.txt")).read() + "\n" +
-                       open(os.path.join( "CHANGES.txt")).read(),
-      # Get more strings from http://www.python.org/pypi?%3Aaction=list_classifiers
+                       #open(os.path.join("transmogrify", "ploneremote",
+                       #"webcrawler.txt")).read() + "\n" +
+                       open(os.path.join("CHANGES.txt")).read(),
       classifiers=[
         "Programming Language :: Python",
         "Topic :: Software Development :: Libraries :: Python Modules",
         ],
-      keywords='transmogrifier blueprint funnelweb source plone import conversion microsoft office',
+      keywords="""transmogrifier blueprint funnelweb source plone import
+        conversion microsoft office""",
       author='Dylan Jay',
       author_email='software@pretaweb.com',
       url='http://github.com/djay/transmogrify.ploneremote',
