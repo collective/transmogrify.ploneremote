@@ -1,4 +1,10 @@
 
+1.0b5 (2011-10-13)
+-------------------
+
+- Various bug fixes
+- Depend on transmogrify.pathsorter
+
 1.0b4 (2011-06-29)
 ------------------
 -    fix uploading html in plone 4.1 by setContentType
@@ -34,7 +40,7 @@
 
 
 1.0a1 (2010-03-22)
-----------------
+------------------
 
 - split from pretaweb.funnelweb and released
   ["Dylan Jay"]

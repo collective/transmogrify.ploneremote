@@ -4,18 +4,17 @@ from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import defaultMatcher
 from transmogrify.pathsorter.treeserializer import TreeSerializer
 
-from Acquisition import aq_base
-from Products.CMFCore.utils import getToolByName
 import xmlrpclib
 import urllib
-from urlparse import urlparse, urljoin
 import logging
+
 
 class RemoteConstructorSection(object):
     classProvides(ISectionBlueprint)
     implements(ISection)
-    
-    "Drop in replacement for constructor that will use xmlprc calls to construct content on a remote plone site"
+
+    """Drop in replacement for constructor that will use xmlprc calls
+    to construct content on a remote plone site"""
 
     def __init__(self, transmogrifier, name, options, previous):
         self.previous = TreeSerializer(transmogrifier, name, options, previous)
@@ -23,12 +22,12 @@ class RemoteConstructorSection(object):
         #self.ttool = getToolByName(self.context, 'portal_types')
 
         self.typekey = defaultMatcher(options, 'type-key', name, 'type',
-                                      ('portal_type', 'Type','_type'))
+                                      ('portal_type', 'Type', '_type'))
         self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
-        self.target = options.get('target','')
+        self.target = options.get('target', '')
         self.logger = logging.getLogger(name)
         if self.target:
-            self.target = self.target.rstrip('/')+'/'
+            self.target = self.target.rstrip('/') + '/'
 
     def __iter__(self):
         if self.target:
@@ -38,12 +37,11 @@ class RemoteConstructorSection(object):
                 yield item
                 continue
             keys = item.keys()
-            type_, path = item.get(self.typekey(*keys)[0]), item.get(self.pathkey(*keys)[0])
-            
+            type_, path = (item.get(self.typekey(*keys)[0]),
+                item.get(self.pathkey(*keys)[0]))
             if not (type_ and path):             # not enough info
-                yield item; continue
-
-
+                yield item
+                continue
 
             #fti = self.ttool.getTypeInfo(type_)
             #if fti is None:                           # not an existing type
@@ -52,13 +50,12 @@ class RemoteConstructorSection(object):
             #    yield item; continue
 
             elems = path.strip('/').rsplit('/', 1)
-            
             for attempt in range(0, 3):
                 try:
-                
                     url = urllib.basejoin(self.target, path)
                     proxy = xmlrpclib.ServerProxy(url)
-                    container, id = (len(elems) == 1 and ('', elems[0]) or elems)
+                    container, id = (len(elems) == 1 and ('', elems[0]) or
+                        elems)
                     #if id == 'index.html':
                     try:
                         #test paths in case of acquition
@@ -66,33 +63,37 @@ class RemoteConstructorSection(object):
                         #TODO: should check type to see if it's correct?
                         rpath = rpath[len(basepath):]
                         if path == '/'.join(rpath):
-                            self.logger.debug("%s already exists. Not creating"% ('/'.join(rpath)) )
+                            self.logger.debug(
+                                "%s already exists. Not creating" % (
+                                '/'.join(rpath)))
                             break
                     except xmlrpclib.Fault:
                         # Doesn't already exist
                         pass
                     except xmlrpclib.ProtocolError:
-                        self.logger.error("%s, %s, %s, %s: xmlrpc protocol error" % (url, proxy, container, id))
-        
-                    purl = urllib.basejoin(self.target,container)
+                        self.logger.error(
+                            "%s, %s, %s, %s: xmlrpc protocol error" % (
+                            url, proxy, container, id))
+                    purl = urllib.basejoin(self.target, container)
                     pproxy = xmlrpclib.ServerProxy(purl)
                     try:
                         pproxy.invokeFactory(type_, id)
-                        self.logger.info("%s Created with type=%s"% (path, type_) )
-                    except xmlrpclib.ProtocolError,e:
+                        self.logger.info(
+                            "%s Created with type=%s" % (path, type_))
+                    except xmlrpclib.ProtocolError, e:
                         if e.errcode == 302:
                             pass
                         else:
                             raise
                     except xmlrpclib.Fault:
-                        self.logger.warning("Failure while creating '%s' of type '%s'"% (path, type_) )
+                        self.logger.warning(
+                            "Failure while creating '%s' of type '%s'" % (
+                                path, type_))
                         pass
                     break
-                except xmlrpclib.ProtocolError,e:
+                except xmlrpclib.ProtocolError, e:
                     if e.errcode == 503:
                         continue
                     else:
                         raise
-            
             yield item
-            

@@ -144,10 +144,13 @@ you can make it configurable from the command line using the following
 Authors
 --------------
 
-In the order of apperance
+In the order of appearance
 
 * Dylan Jay, software@pretaweb.com
 
 * Mikko Ohtamaa, mikko@mfabrik.com, http://mfabrik.com
 
 * Vitaliy Podoba, vitaliypodoba@gmail.com
+
+* Alex Clark, aclark@aclark.net, http://aclark.net
+
