@@ -151,7 +151,7 @@ class PathBasedAbstractRemoteCommand(AbstractRemoteCommand):
         
     def constructRemoteURL(self, item, allow_index_html=False):
         """
-        @parma allow_index_html: if path is index.html it falls back to the default folder
+        @param allow_index_html: if path is index.html it falls back to the default folder
         """
     
         path = self.extractPath(item)
