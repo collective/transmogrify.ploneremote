@@ -107,7 +107,12 @@ class RemoteSchemaUpdaterSection(object):
                 else:
                     # setModificationDate doesn't use 'value' keyword
                     try:
+                        # XXX Better way than catching method names?
+                        if method == 'Image':    # wrap binary image data
+                            value = xmlrpclib.Binary(value)  
+
                         getattr(proxy, 'set%s' % method)(value)
+
                     except xmlrpclib.Fault, e:
                         # XXX Too noisy?
                         #self.logger.error("%s.set%s(%s) raised %s"%(
