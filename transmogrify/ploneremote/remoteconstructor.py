@@ -39,10 +39,11 @@ class RemoteConstructorSection(object):
                 continue
             keys = item.keys()
             type_, path = item.get(self.typekey(*keys)[0]), item.get(self.pathkey(*keys)[0])
-            
+
             if not (type_ and path):             # not enough info
                 yield item; continue
 
+            path = path.encode('ascii')
 
 
             #fti = self.ttool.getTypeInfo(type_)
@@ -65,10 +66,18 @@ class RemoteConstructorSection(object):
                         rpath = proxy.getPhysicalPath()
                         #TODO: should check type to see if it's correct?
                         rpath = rpath[len(basepath):]
-                        if path == '/'.join(rpath):
-                            self.logger.debug("%s already exists. Not creating"% ('/'.join(rpath)) )
+                        typeinfo = proxy.getTypeInfo()
+                        existingtype = typeinfo.get('id')
+                        if existingtype != type_:
+                            self.logger.info("%s already exists. but is %s instead of %s. Deleting"% (path,existingtype, type_) )
+                            parentpath =  '/'.join(path.split('/')[:-1])
+                            parent = xmlrpclib.ServerProxy(urllib.basejoin(self.target,parentpath))
+                            parent.manage_delObjects([id])
+
+                        elif path == '/'.join(rpath):
+                            self.logger.debug("%s already exists. Not creating"% (path) )
                             break
-                    except xmlrpclib.Fault:
+                    except xmlrpclib.Fault, e:
                         # Doesn't already exist
                         pass
                     purl = urllib.basejoin(self.target,container)
@@ -81,8 +90,8 @@ class RemoteConstructorSection(object):
                             pass
                         else:
                             raise
-                    except xmlrpclib.Fault:
-                        self.logger.warning("Failuire while creating '%s' of type '%s'"% (path, type_) )
+                    except xmlrpclib.Fault, e:
+                        self.logger.warning("Failuire while creating '%s' of type '%s: %s'"% (path, type_, e) )
                         pass
                     break
                 except xmlrpclib.ProtocolError,e:
