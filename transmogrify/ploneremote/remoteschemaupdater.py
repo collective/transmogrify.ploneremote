@@ -111,7 +111,10 @@ class RemoteSchemaUpdaterSection(object):
                 updated.append(key)
             if fields:
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
-                proxy.update() #does indexing
+                try:
+                    proxy.update() #does indexing
+                except xmlrpclib.Fault, e:
+                    self.logger.error("%s.update() raised %s"%(path,e))
 
 #            for attempt in range(0,3):
 #                try:
