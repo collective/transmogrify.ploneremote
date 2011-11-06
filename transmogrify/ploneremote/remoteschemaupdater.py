@@ -7,6 +7,8 @@ from collective.transmogrifier.utils import defaultKeys
 import urllib
 import xmlrpclib
 import logging
+from collective.transmogrifier.utils import Condition, Expression
+
 
 
 class RemoteSchemaUpdaterSection(object):
@@ -18,6 +20,8 @@ class RemoteSchemaUpdaterSection(object):
         self.context = transmogrifier.context
         self.target = options['target']
         self.logger = logging.getLogger(name)
+        self.condition=Condition(options.get('condition','python:True'), transmogrifier, name, options)
+        self.skip_existing = options.get('skip-existing','False').lower() in ['true','yes']
         if self.target:
             self.target = self.target.rstrip('/')+'/'
         
@@ -39,6 +43,7 @@ class RemoteSchemaUpdaterSection(object):
             if not pathkey:         # not enough info
                 yield item; continue
 
+
             path = item[pathkey]
             
             url = urllib.basejoin(self.target, path)
@@ -53,6 +58,17 @@ class RemoteSchemaUpdaterSection(object):
             updated = []
             proxy = xmlrpclib.ServerProxy(url)
             multicall = xmlrpclib.MultiCall(proxy)
+
+            if not self.condition(item, proxy=proxy):
+                self.logger.info('%s skipping (condition)'%(path))
+                yield item; continue
+
+            #if self.skip_existing:
+            #    import pdb; pdb.set_trace()
+            #    if proxy.CreationDate() != proxy.ModificationDate():
+            #        self.logger.info('%s skipping existing'%(path))
+            #        yield item; continue
+
             # handle complex fields e.g. image = ..., image.filename = 'blah.gif', image.mimetype = 'image/gif'
             for key, value in item.iteritems():
                 if key.startswith('_'):
@@ -94,7 +110,18 @@ class RemoteSchemaUpdaterSection(object):
                     #need to use urllib for keywork arguments
                     arguments.update(dict(value=value))
                     input = urllib.urlencode(arguments)
-                    f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
+                    f = None
+                    for attempt in range(0,3):
+                        try:
+                            f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
+                            break
+                        except IOError, e:
+                            self.logger.warning("%s.set%s() raised %s"%(path,method,e))
+                    if f is None:
+                        self.logger.warning("%s.set%s() raised too many errors. Giving up"%(path,method))
+                        break
+
+
                     nurl = f.geturl()
                     info = f.info()
                     #print method + str(arguments)
@@ -115,21 +142,6 @@ class RemoteSchemaUpdaterSection(object):
                     proxy.update() #does indexing
                 except xmlrpclib.Fault, e:
                     self.logger.error("%s.update() raised %s"%(path,e))
-
-#            for attempt in range(0,3):
-#                try:
-#                    if '_defaultpage' in item:
-#                        proxy.setDefaultPage(item['_defaultpage'])
-#                        self.logger.info('%s.setDefaultPath=%s'%(path, item['_defaultpage']))
-#                    break
-#                except xmlrpclib.ProtocolError,e:
-#                    if e.errcode == 503:
-#                        continue
-#                    else:
-#                        raise
-#                except xmlrpclib.Fault,e:
-#                    pass
-
 
             yield item
 

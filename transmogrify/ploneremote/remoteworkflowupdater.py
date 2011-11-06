@@ -6,14 +6,16 @@ from zope.interface import classProvides, implements
 from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import defaultMatcher
+from collective.transmogrifier.utils import Condition, Expression
 
 from Products.CMFCore.utils import getToolByName
 from Products.CMFCore.WorkflowCore import WorkflowException
+import xmlrpclib
 
-from base import AbstractRemoteCommand
+from base import AbstractRemoteCommand,PathBasedAbstractRemoteCommand
 
 
-class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
+class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
     """
     Do remote workflow state transition using Plone HTTP API.
     
@@ -27,12 +29,14 @@ class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
         """
         
         # Call parent 
-        AbstractRemoteCommand.readOptions(self, options)
+        PathBasedAbstractRemoteCommand.readOptions(self, options)
         
         # Remote site / object URL containing HTTP Basic Auth username and password 
         self.pathkey = defaultMatcher(options, 'path-key', self.name, 'path')
         self.transitionskey = defaultMatcher(options, 'transitions-key', self.name,
                                              'transitions')
+
+
     def __iter__(self):
     
         self.checkOptions()
@@ -53,11 +57,21 @@ class RemoteWorkflowUpdaterSection(AbstractRemoteCommand):
             if not (pathkey and transitionskey): # not enough info
                 yield item
                 continue
-            
+
+            proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
+            if not self.condition(item, proxy=proxy):
+                self.logger.info('%s skipping (condition)'%(path))
+                yield item; continue
+
             path, transitions = item[pathkey], item[transitionskey]
             if isinstance(transitions, basestring):
                 transitions = (transitions,)
-                            
+
+            if not self.condition(item, proxy=proxy):
+                self.logger.info('%s skipping (condition)'%(path))
+                yield item; continue
+
+
             remote_url = urllib.basejoin(self.target, path)
             if not remote_url.endswith("/"):
                 remote_url += "/"

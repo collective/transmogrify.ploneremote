@@ -17,6 +17,8 @@ from Products.CMFCore.utils import getToolByName
 from Products.CMFCore.WorkflowCore import WorkflowException
 
 from base import AbstractRemoteCommand, PathBasedAbstractRemoteCommand
+import xmlrpclib
+
 
 logger = logging.getLogger('remoteprune')
 
@@ -87,6 +89,12 @@ class RemotePruneSection(PathBasedAbstractRemoteCommand):
                             
         for item in self.previous:            
             
+            proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
+            path = self.extractPath(item)
+            if not self.condition(item, proxy=proxy):
+                self.logger.info('%s skipping (condition)'%(path))
+                yield item; continue
+
             # See if "prune" flag is set for this tranmogrifier item
             prune = self.extractTruthValue(item, self.prune_folder_matcher)
                     

@@ -6,6 +6,9 @@ from zope.interface import classProvides, implements
 from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import defaultMatcher
+from collective.transmogrifier.utils import Condition, Expression
+import xmlrpclib
+
 
 from base import PathBasedAbstractRemoteCommand 
 
@@ -35,6 +38,12 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand ):
             if not path or not self.target:
                 yield item
                 continue
+
+            proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
+            if not self.condition(item, proxy=proxy):
+                self.logger.info('%s skipping (condition)'%(path))
+                yield item; continue
+
             
             # check if we got any original path and it's different from current
             orig_path = item.get('_orig_path', None)

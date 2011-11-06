@@ -5,6 +5,8 @@ from zope.interface import classProvides, implements
 
 from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.interfaces import ISectionBlueprint
+from collective.transmogrifier.utils import Condition, Expression
+
 
 from base import PathBasedAbstractRemoteCommand 
 
@@ -26,7 +28,7 @@ class RemoteNavigationExcluderSection(PathBasedAbstractRemoteCommand):
     
         # Which key we use to read navigation exclusion hint 
         self.exclusion = defaultMatcher(options, 'exclude-from-navigation-key', self.name, 'exclude-from-navigation')
-    
+
     def __iter__(self):
     
         self.checkOptions()
@@ -49,7 +51,12 @@ class RemoteNavigationExcluderSection(PathBasedAbstractRemoteCommand):
                 # info to perform this pipeline transformation
                 yield item
                 continue
-            
+
+            proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
+            if not self.condition(item, proxy=proxy):
+                self.logger.info('%s skipping (condition)'%(path))
+                yield item; continue
+
             logger.debug("Setting exclude from navigation for " + path + " to " + str(exclude_from_nav))
                                         
             url = self.constructRemoteURL(item)            

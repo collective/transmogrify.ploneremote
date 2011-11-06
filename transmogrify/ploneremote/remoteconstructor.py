@@ -25,6 +25,7 @@ class RemoteConstructorSection(object):
         self.typekey = defaultMatcher(options, 'type-key', name, 'type',
                                       ('portal_type', 'Type','_type'))
         self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
+        self.creation_key = options.get('creation-key', '_creation_flag').strip()
         self.target = options.get('target','')
         self.logger = logging.getLogger(name)
         if self.target:
@@ -39,6 +40,7 @@ class RemoteConstructorSection(object):
                 continue
             keys = item.keys()
             type_, path = item.get(self.typekey(*keys)[0]), item.get(self.pathkey(*keys)[0])
+            item[self.creation_key] = False
 
             if not (type_ and path):             # not enough info
                 yield item; continue
@@ -53,7 +55,7 @@ class RemoteConstructorSection(object):
             #    yield item; continue
 
             elems = path.strip('/').rsplit('/', 1)
-            
+
             for attempt in range(0, 3):
                 try:
                 
@@ -85,6 +87,7 @@ class RemoteConstructorSection(object):
                     try:
                         pproxy.invokeFactory(type_, id)
                         self.logger.info("%s Created with type=%s"% (path, type_) )
+                        item[creation_key] = True
                     except xmlrpclib.ProtocolError,e:
                         if e.errcode == 302:
                             pass
