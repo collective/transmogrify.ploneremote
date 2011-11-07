@@ -69,6 +69,7 @@ class RemoteSchemaUpdaterSection(object):
             #        self.logger.info('%s skipping existing'%(path))
             #        yield item; continue
 
+
             # handle complex fields e.g. image = ..., image.filename = 'blah.gif', image.mimetype = 'image/gif'
             for key, value in item.iteritems():
                 if key.startswith('_'):
@@ -116,6 +117,7 @@ class RemoteSchemaUpdaterSection(object):
                             f = urllib.urlopen(url+'/set%s'%key.capitalize(), input)
                             break
                         except IOError, e:
+                            #import pdb; pdb.set_trace()
                             self.logger.warning("%s.set%s() raised %s"%(path,method,e))
                     if f is None:
                         self.logger.warning("%s.set%s() raised too many errors. Giving up"%(path,method))
@@ -135,7 +137,9 @@ class RemoteSchemaUpdaterSection(object):
                         getattr(proxy,'set%s'%method)(value)
                     except xmlrpclib.Fault, e:
                         self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
-                updated.append(key)
+                    except xmlrpclib.ProtocolError, e:
+                        self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
+                    updated.append(key)
             if fields:
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
                 try:
