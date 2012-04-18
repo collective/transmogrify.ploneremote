@@ -146,6 +146,8 @@ class RemoteSchemaUpdaterSection(object):
                     proxy.update() #does indexing
                 except xmlrpclib.Fault, e:
                     self.logger.error("%s.update() raised %s"%(path,e))
+                except xmlrpclib.ProtocolError, e:
+                    self.logger.error("%s.update() raised %s"%(path,e))
 
             yield item
 
