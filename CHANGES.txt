@@ -2,13 +2,18 @@
 1.1 (2012-04-19)
 ----------------
 
--    remoteconstructor: handle uploading with moved content or content thats changed type
--    ploneprune: ignore items with no path
--    handle Protocol errors in schemaupdater
--    handle some xmlrpc errors better
--    add conditions so can skip existing
--    improve documentation
+-    remoteconstructor: handle uploading with moved content or content thats changed type [djay]
+-    ploneprune: ignore items with no path [djay]
+-    handle Protocol errors in schemaupdater [djay]
+-    handle some xmlrpc errors better [djay]
+-    add conditions so can skip existing [djay]
+-    improve documentation [djay]
 
+1.0b5 (2011-10-13)
+-------------------
+
+- Various bug fixes [aclark]
+- Depend on transmogrify.pathsorter [aclark]
 
 1.0b4 (2011-06-29)
 ------------------
@@ -45,7 +50,7 @@
 
 
 1.0a1 (2010-03-22)
-----------------
+------------------
 
 - split from pretaweb.funnelweb and released
   ["Dylan Jay"]

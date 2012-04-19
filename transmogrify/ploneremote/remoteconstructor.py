@@ -5,18 +5,17 @@ from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Condition, Expression
 from transmogrify.pathsorter.treeserializer import TreeSerializer
 
-from Acquisition import aq_base
-from Products.CMFCore.utils import getToolByName
 import xmlrpclib
 import urllib
-from urlparse import urlparse, urljoin
 import logging
+
 
 class RemoteConstructorSection(object):
     classProvides(ISectionBlueprint)
     implements(ISection)
-    
-    "Drop in replacement for constructor that will use xmlprc calls to construct content on a remote plone site"
+
+    """Drop in replacement for constructor that will use xmlprc calls
+    to construct content on a remote plone site"""
 
     def __init__(self, transmogrifier, name, options, previous):
         self.previous = TreeSerializer(transmogrifier, name, options, previous)
@@ -24,7 +23,7 @@ class RemoteConstructorSection(object):
         #self.ttool = getToolByName(self.context, 'portal_types')
 
         self.typekey = defaultMatcher(options, 'type-key', name, 'type',
-                                      ('portal_type', 'Type','_type'))
+                                      ('portal_type', 'Type', '_type'))
         self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
         self.creation_key = options.get('creation-key', '_creation_flag').strip()
         self.target = options.get('target','')
@@ -47,11 +46,13 @@ class RemoteConstructorSection(object):
                 yield item
                 continue
             keys = item.keys()
-            type_, path = item.get(self.typekey(*keys)[0]), item.get(self.pathkey(*keys)[0])
+            type_, path = item.get(self.typekey(*keys)[0]), \
+                          item.get(self.pathkey(*keys)[0])
             item[self.creation_key] = False
 
             if not (type_ and path):             # not enough info
-                yield item; continue
+                yield item
+                continue
 
             path = path.encode('ascii')
             parentpath =  '/'.join(path.split('/')[:-1])
@@ -146,12 +147,10 @@ class RemoteConstructorSection(object):
                         self.logger.warning("Failuire while creating '%s' of type '%s: %s'"% (path, type_, e) )
                         pass
                     break
-                except xmlrpclib.ProtocolError,e:
+                except xmlrpclib.ProtocolError, e:
                     if e.errcode == 503:
                         continue
                     else:
                         self.logger.error("%s raised %s"%(path,e))
                         #raise
-            
             yield item
-            
