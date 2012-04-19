@@ -13,61 +13,99 @@ Usage
 
 Five different blueprints are provided.
 
-Remote constructor
-====================
+Common Options
+==============
 
-TODO: How to guess the type and location to be created
+target
+  Url of Plone folder to upload content. You will need to include the username and
+  password using the url syntax. e.g. http://user:password@site.com/folder.
+  If you'd prefer not to hardcode your password in a pipeline.cfg you can use
+  `mr.migrator` which lets you override your pipeline using the commandline.
 
-Example::
-
-        #
-        # Create remote item on Plone site
-        #
-        [ploneuploader]
-        blueprint = transmogrify.ploneremote.remoteconstructor
+path-key
+  Which blueprint item dictionary key is used to extract the remote path information
+  or the item. Default value *path* .
 
 
+transmogrify.ploneremote.constructor
+====================================
 
-Remote schema updater
-========================================
+Drop in replacement for constructor that will use xmlprc calls to construct content on a remote plone site
+
+Options
+~~~~~~~
+
+target
+  see `Common Options`
+
+path-key
+  see `Common Options`
+
+type-key
+  Key of the field with item type to create. Defaults to 'type','portal_type', 'Type','_type'
+
+creation-key
+  Key of the field to determine if item should be created. Defaults to '_creation_flag'
+
+create-condition
+  TAL expression to determine if item should be added. Defaults to 'python:True'
+
+move-condition
+  If the content has already been uploaded and then moved this TAL expression
+  will determine if the content should be moved back. Default is 'python:True'
+
+remove-condition
+  If the content has already been uploaded and is of a different type this
+  TAL expression will determine if the item can be removed and recreated.
+
+
+
+transmogrify.ploneremote.remoteschemaupdater
+============================================
 
 This will use XML-RPC to call Archetypes setXXX() mutator methods remotely
 to set field values.
 
 TODO: How to input schema fields
 
-Example::
+Options
+~~~~~~~
 
-        #
-        # Update the remote item with new extracted content from Sphinx documentation
-        # 
-        [schemaupdater]
-        blueprint = transmogrify.ploneremote.remoteschemaupdater
+target
+  see `Common Options`
 
-Portal transform
-====================
+path-key
+  see `Common Options`
 
-TODO: No idea
+condition
+  TAL Expression to determine to use this blueprint
 
-Workflow updater
-====================
+skip-existing
+  Default is 'False'
+
+
+transmogrify.ploneremote.remoteworkflowupdater
+==============================================
 
 Triggers the state transition of the remote item workflow i.e.
 publishes the item if it is not public.
 
-Takes the following parameters:
+Options
+~~~~~~~
 
-* *path-key*: which blueprint item dictionary key is used to extract the remote path information 
-  or the item. Default value *path* . 
+target
+  see `Common Options`
 
-* *transitions-key*: which blueprint item dictionary key is used as the transition name
+path-key
+  see `Common Options`
+
+transitions-key
+  which blueprint item dictionary key is used as the transition name
   for the item. 
 
-* *target*: Remote site URL
 
-
-Redirector
-==========
+transmogrify.ploneremote.remoteredirector
+=========================================
 
 This blueprint adds redirection aliases to those content items that have changed
 it's paths during tranmogrification process. It takes into account item's
@@ -79,10 +117,6 @@ is required to install that addon in order to make
 If *path* is not equal to *orig_path* then appropriate aliases is being added
 to local Plone utility (IRedirectionStorage) using Aliases form.
 
-Takes the following parameters:
-
-* *path-key*: which blueprint item dictionary key is used to extract the remote
-  path information or the item. Default value *path* .
 
 Example::
 
@@ -92,53 +126,51 @@ Example::
         [redirector]
         blueprint = transmogrify.ploneremote.remoteredirector
 
+Options
+~~~~~~~
 
-Making remote site URL configurable
------------------------------------
+target
+  see `Common Options`
 
-All blueprints take remote site URL parameter.
-Instead of hardcoding this to your *pipeline.cfg*
-you can make it configurable from the command line using the following 
-*buildout.cfg* snippet to create a helper script::
+path-key
+  see `Common Options`
 
-        #
-        # Recipe to create toplone command.
-        # 
-        # It will walk through all blueprints defined
-        # in pipeline.cfg and override their target parameter
-        # to be a remote Plone site given on the command line.
-        # This all happeins in initialization= magic.
-        #
-        # Also Python logger is initialized to give us verbose
-        # output. Some blueprints use logging module for the output.
-        #
-        [toplone]
-        recipe = zc.recipe.egg
-        eggs =
-          transmogrify.htmltesting
-          transmogrify.webcrawler
-          transmogrify.siteanalyser
-          transmogrify.htmlcontentextractor
-          transmogrify.pathsorter
-          transmogrify.ploneremote
-          Products.CMFCore
-        initialization =
-          from urllib import pathname2url as url
-          from sys import argv
-          import logging
-          
-          logging.basicConfig(level=logging.INFO)
-          args = dict(webcrawler=dict(site_url=url('build')),
-              localconstructor=dict(output=url('ploneout')),
-              ploneuploader=dict(target=argv[1]),
-              schemaupdater=dict(target=argv[1]),
-              publish=dict(target=argv[1]),
-              redirector=dict(target=argv[1]),
-              )
-        arguments = 'pipeline.cfg', args
-        entry-points = toplone=transmogrify.htmltesting.runner:runner
-        extra-paths = ${zope2:location}/lib/python
-         
+transmogrify.ploneremote.remoteprune
+====================================
+
+Removes any items from a folder if it's not an item in the pipeline.
+
+Options
+~~~~~~~
+
+target
+  see `Common Options`
+
+path-key
+  see `Common Options`
+
+prune-folder-key
+     which transmogrifier field is read to check
+     if the prune folder is run against the remote folder.
+     The default value os "_prune-folder"
+
+transmogrify.ploneremote.remotenavigationexcluder
+=================================================
+
+Set "Exclude from Navigation" setting for remote Plone content items.
+
+Options
+~~~~~~~
+
+target
+  see `Common Options`
+
+path-key
+  see `Common Options`
+
+exclude-from-navigation-key
+  Which key we use to read navigation exclusion hint.
+  Default is 'exclude-from-navigation'
 
 
 Authors

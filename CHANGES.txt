@@ -1,4 +1,15 @@
 
+1.1 (2012-04-19)
+----------------
+
+-    remoteconstructor: handle uploading with moved content or content thats changed type
+-    ploneprune: ignore items with no path
+-    handle Protocol errors in schemaupdater
+-    handle some xmlrpc errors better
+-    add conditions so can skip existing
+-    improve documentation
+
+
 1.0b4 (2011-06-29)
 ------------------
 -    fix uploading html in plone 4.1 by setContentType
