@@ -32,29 +32,28 @@ transmogrify.ploneremote.constructor
 
 Drop in replacement for constructor that will use xmlprc calls to construct content on a remote plone site
 
-Options
-~~~~~~~
+Options:
 
-target
-  see `Common Options`
+:target:
+  see `Common Options`_
 
-path-key
-  see `Common Options`
+:path-key:
+  see `Common Options`_
 
-type-key
+:type-key:
   Key of the field with item type to create. Defaults to 'type','portal_type', 'Type','_type'
 
-creation-key
+:creation-key:
   Key of the field to determine if item should be created. Defaults to '_creation_flag'
 
-create-condition
+:create-condition:
   TAL expression to determine if item should be added. Defaults to 'python:True'
 
-move-condition
+:move-condition:
   If the content has already been uploaded and then moved this TAL expression
   will determine if the content should be moved back. Default is 'python:True'
 
-remove-condition
+:remove-condition:
   If the content has already been uploaded and is of a different type this
   TAL expression will determine if the item can be removed and recreated.
 
@@ -68,19 +67,18 @@ to set field values.
 
 TODO: How to input schema fields
 
-Options
-~~~~~~~
+Options:
 
-target
-  see `Common Options`
+:target:
+  see `Common Options`_
 
-path-key
-  see `Common Options`
+:path-key:
+  see `Common Options`_
 
-condition
+:condition:
   TAL Expression to determine to use this blueprint
 
-skip-existing
+:skip-existing:
   Default is 'False'
 
 
@@ -90,16 +88,15 @@ transmogrify.ploneremote.remoteworkflowupdater
 Triggers the state transition of the remote item workflow i.e.
 publishes the item if it is not public.
 
-Options
-~~~~~~~
+Options:
 
-target
-  see `Common Options`
+:target:
+  see `Common Options`_
 
-path-key
-  see `Common Options`
+:path-key:
+  see `Common Options`_
 
-transitions-key
+:transitions-key:
   which blueprint item dictionary key is used as the transition name
   for the item. 
 
@@ -126,30 +123,28 @@ Example::
         [redirector]
         blueprint = transmogrify.ploneremote.remoteredirector
 
-Options
-~~~~~~~
+Options:
 
-target
-  see `Common Options`
+:target:
+  see `Common Options`_
 
-path-key
-  see `Common Options`
+:path-key:
+  see `Common Options`_
 
 transmogrify.ploneremote.remoteprune
 ====================================
 
 Removes any items from a folder if it's not an item in the pipeline.
 
-Options
-~~~~~~~
+Options:
 
-target
-  see `Common Options`
+:target:
+  see `Common Options`_
 
-path-key
-  see `Common Options`
+:path-key:
+  see `Common Options`_
 
-prune-folder-key
+:prune-folder-key:
      which transmogrifier field is read to check
      if the prune folder is run against the remote folder.
      The default value os "_prune-folder"
@@ -159,16 +154,15 @@ transmogrify.ploneremote.remotenavigationexcluder
 
 Set "Exclude from Navigation" setting for remote Plone content items.
 
-Options
-~~~~~~~
+Options:
 
-target
-  see `Common Options`
+:target:
+  see `Common Options`_
 
-path-key
-  see `Common Options`
+:path-key:
+  see `Common Options`_
 
-exclude-from-navigation-key
+:exclude-from-navigation-key:
   Which key we use to read navigation exclusion hint.
   Default is 'exclude-from-navigation'
 
