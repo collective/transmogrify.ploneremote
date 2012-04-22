@@ -80,7 +80,10 @@ class RemotePruneSection(PathBasedAbstractRemoteCommand):
         self.checkOptions()
 
                             
-        for item in self.previous:            
+        for item in self.previous:
+            if not self.target:
+                yield item
+                continue
             
             proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
             path = self.extractPath(item)
