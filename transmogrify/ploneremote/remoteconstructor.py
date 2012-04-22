@@ -3,7 +3,7 @@ from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Condition, Expression
-from transmogrify.pathsorter.treeserializer import TreeSerializer
+from transmogrify.siteanalyser.treeserializer import TreeSerializer
 
 import xmlrpclib
 import urllib
