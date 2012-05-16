@@ -7,6 +7,7 @@ from transmogrify.pathsorter.treeserializer import TreeSerializer
 
 import xmlrpclib
 import urllib
+import urlparse
 import logging
 
 
@@ -80,7 +81,7 @@ class RemoteConstructorSection(object):
                         f = urllib.urlopen(old_url)
                         redir = f.code == 200
 
-                        _,_,oldpath,_,_,_ = urlparse(f.geturl())
+                        _,_,oldpath,_,_,_ = urlparse.urlparse(f.geturl())
                         parts = oldpath.split('/')
                         oldparentpath,oldid = parts[:-1],parts[-1]
                         oldparentpath = '/'.join(oldparentpath)
