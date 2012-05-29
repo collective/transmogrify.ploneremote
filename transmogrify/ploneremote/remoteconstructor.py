@@ -77,7 +77,9 @@ class RemoteConstructorSection(object):
                     #see if content already uploaded to another location
                     moved = False
                     if '_orig_path' in item:
-                        old_url = portal_url+item['_orig_path']
+                        # old_url = portal_url+item['_orig_path']
+                        # XXX: referers to target and not portal
+                        old_url = self.target  + item['_orig_path']
                         f = urllib.urlopen(old_url)
                         redir = f.code == 200
 
@@ -85,7 +87,7 @@ class RemoteConstructorSection(object):
                         parts = oldpath.split('/')
                         oldparentpath,oldid = parts[:-1],parts[-1]
                         oldparentpath = '/'.join(oldparentpath)
-                        oldparenturl = urllib.basejoin(self.target,oldparentpath)
+                        oldparenturl = urllib.basejoin(self.target, oldparentpath)
                         if '_origin' not in item:
                             item['_origin'] = item['_path']
                         #import pdb; pdb.set_trace()
@@ -107,20 +109,27 @@ class RemoteConstructorSection(object):
                         else:
                             #id = oldid
                             pass
-                        path = '/'.join([parentpath,id])
+                        path = '/'.join([parentpath, id])
                         item['_path'] = path
                     #test paths in case of acquition
                     url = urllib.basejoin(self.target, path)
                     proxy = xmlrpclib.ServerProxy(url)
-                    #rpath = proxy.getPhysicalPath()
-                    #rpath = rpath[len(basepath):]
+
                     try:
-                        typeinfo = proxy.getTypeInfo()
-                        existingtype = typeinfo.get('id')
+                        rpath = proxy.getPhysicalPath()
+                        rpath = rpath[len(basepath):]
+
+                        if rpath != item['_path']:
+                            # Doesn't already exist
+                            existingtype = None
+                        else:
+                            typeinfo = proxy.getTypeInfo()
+                            existingtype = typeinfo.get('id')
                     except xmlrpclib.Fault, e:
-                        existingtype = None
                         # Doesn't already exist
                         #self.logger.error("%s raised %s"%(path,e))
+                        existingtype = None
+
                     if existingtype and existingtype != type_ and self.remove(item):
                         self.logger.info("%s already exists. but is %s instead of %s. Deleting"% (path,existingtype, type_) )
                         parent.manage_delObjects([id])
@@ -129,6 +138,7 @@ class RemoteConstructorSection(object):
                         if moved:
                             self.logger.info("%s moved existing item"% (path) )
                         else:
+                            import ipdb; ipdb.set_trace( )
                             self.logger.info("%s already exists. Not creating"% (path) )
                         break
                     #purl = urllib.basejoin(self.target,container)
