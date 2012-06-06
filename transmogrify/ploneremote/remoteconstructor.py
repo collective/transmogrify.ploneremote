@@ -92,7 +92,7 @@ class RemoteConstructorSection(object):
                             item['_origin'] = item['_path']
                         #import pdb; pdb.set_trace()
 
-                        if redir and oldparenturl != parenturl and self.move(item):
+                        if oldid and redir and oldparenturl != parenturl and self.move(item):
                             oldparent = xmlrpclib.ServerProxy(oldparenturl, allow_none=True)
                             cp_data = oldparent.manage_cutObjects([oldid], None)
                             parent.manage_pasteObjects(cp_data)
@@ -103,7 +103,7 @@ class RemoteConstructorSection(object):
                             #parent = xmlrpclib.ServerProxy(parenturl)
                             pass
 
-                        if redir and oldid != id and self.move(item):
+                        if oldid and redir and oldid != id and self.move(item):
                             parent.manage_renameObject(oldid, id)
                             moved = True
                         else:
@@ -138,7 +138,6 @@ class RemoteConstructorSection(object):
                         if moved:
                             self.logger.info("%s moved existing item"% (path) )
                         else:
-                            import ipdb; ipdb.set_trace( )
                             self.logger.info("%s already exists. Not creating"% (path) )
                         break
                     #purl = urllib.basejoin(self.target,container)
