@@ -77,7 +77,9 @@ class RemoteConstructorSection(object):
                     #see if content already uploaded to another location
                     moved = False
                     if '_orig_path' in item:
-                        old_url = portal_url+item['_orig_path']
+                        # old_url = portal_url+item['_orig_path']
+                        # XXX: referers to target and not portal
+                        old_url = self.target  + item['_orig_path']
                         f = urllib.urlopen(old_url)
                         redir = f.code == 200
 
@@ -85,12 +87,12 @@ class RemoteConstructorSection(object):
                         parts = oldpath.split('/')
                         oldparentpath,oldid = parts[:-1],parts[-1]
                         oldparentpath = '/'.join(oldparentpath)
-                        oldparenturl = urllib.basejoin(self.target,oldparentpath)
+                        oldparenturl = urllib.basejoin(self.target, oldparentpath)
                         if '_origin' not in item:
                             item['_origin'] = item['_path']
                         #import pdb; pdb.set_trace()
 
-                        if redir and oldparenturl != parenturl and self.move(item):
+                        if oldid and redir and oldparenturl != parenturl and self.move(item):
                             oldparent = xmlrpclib.ServerProxy(oldparenturl, allow_none=True)
                             cp_data = oldparent.manage_cutObjects([oldid], None)
                             parent.manage_pasteObjects(cp_data)
@@ -101,26 +103,33 @@ class RemoteConstructorSection(object):
                             #parent = xmlrpclib.ServerProxy(parenturl)
                             pass
 
-                        if redir and oldid != id and self.move(item):
+                        if oldid and redir and oldid != id and self.move(item):
                             parent.manage_renameObject(oldid, id)
                             moved = True
                         else:
                             #id = oldid
                             pass
-                        path = '/'.join([parentpath,id])
+                        path = '/'.join([parentpath, id])
                         item['_path'] = path
                     #test paths in case of acquition
                     url = urllib.basejoin(self.target, path)
                     proxy = xmlrpclib.ServerProxy(url)
-                    #rpath = proxy.getPhysicalPath()
-                    #rpath = rpath[len(basepath):]
+
                     try:
-                        typeinfo = proxy.getTypeInfo()
-                        existingtype = typeinfo.get('id')
+                        rpath = proxy.getPhysicalPath()
+                        rpath = rpath[len(basepath):]
+
+                        if rpath != item['_path']:
+                            # Doesn't already exist
+                            existingtype = None
+                        else:
+                            typeinfo = proxy.getTypeInfo()
+                            existingtype = typeinfo.get('id')
                     except xmlrpclib.Fault, e:
-                        existingtype = None
                         # Doesn't already exist
                         #self.logger.error("%s raised %s"%(path,e))
+                        existingtype = None
+
                     if existingtype and existingtype != type_ and self.remove(item):
                         self.logger.info("%s already exists. but is %s instead of %s. Deleting"% (path,existingtype, type_) )
                         parent.manage_delObjects([id])

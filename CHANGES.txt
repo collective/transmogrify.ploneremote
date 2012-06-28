@@ -1,3 +1,10 @@
+1.2.1dev (Unreleased)
+---------------------
+
+- check if oldid exists before to try to move an object [gborelli]
+- improved checking of existing items in remoteconstructor [gborelli]
+
+
 1.2 (2012-04-28)
 ----------------
 
