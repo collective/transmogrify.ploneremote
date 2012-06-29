@@ -3,7 +3,7 @@
 
 - check if oldid exists before to try to move an object [gborelli]
 - improved checking of existing items in remoteconstructor [gborelli]
-
+- don't join the path when parentpath is empty [ivanteoh]
 
 1.2 (2012-04-28)
 ----------------
