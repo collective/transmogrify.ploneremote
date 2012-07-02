@@ -155,22 +155,24 @@ class RemoteConstructorSection(object):
                     try:
                         if self.create(item):
                             self.logger.debug("%s creating as %s" % (path, type_))
-                            parent.invokeFactory(type_, id)
-                            self.logger.info("%s Created with type=%s" % (path, type_))
+                            try:
+                                parent.invokeFactory(type_, id)
+                            except xmlrpclib.ProtocolError, e:
+                                # 302 means content was created correctly
+                                if e.errcode != 302:
+                                    raise
+                            self.logger.debug("%s Created with type=%s" % (path, type_))
                             item[self.creation_key] = True
                     except xmlrpclib.ProtocolError, e:
-                        if e.errcode == 302:
-                            pass
-                        else:
-                            self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
-                            pass
+                        self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
+                        pass
                     except xmlrpclib.Fault, e:
                         self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
                         pass
                     break
                 except xmlrpclib.ProtocolError, e:
                     if e.errcode == 503:
-                        continue
+                        self.logger.debug("%s raised %s. retyring" % (path, e))
                     else:
                         self.logger.error("%s raised %s" % (path, e))
                         #raise
