@@ -81,10 +81,13 @@ class RemoteSchemaUpdaterSection(object):
                 else:
                     subkey = parts[1]
                     fields[key][1][subkey] = value
+
             if '_defaultpage' in item:
+                self.logger.debug("'%s' set default page" %(item['_defaultpage']))
                 fields['DefaultPage'] = (item['_defaultpage'], {})
             if '_mimetype' in item:
                 # Without this plone 4.1 doesn't update html correctly
+                self.logger.debug("'%s' set content type" %(item['_mimetype']))
                 fields['ContentType'] = (item['_mimetype'], {})
 
             for key, parts in fields.items():

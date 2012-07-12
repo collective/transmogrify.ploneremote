@@ -36,6 +36,7 @@ class RemoteConstructorSection(object):
         self.remove=Condition(options.get('remove-condition','python:True'), transmogrifier, name, options)
 
     def __iter__(self):
+
         if self.target:
             proxy = xmlrpclib.ServerProxy(self.target)
             basepath = proxy.getPhysicalPath()
@@ -55,6 +56,7 @@ class RemoteConstructorSection(object):
                 yield item
                 continue
 
+            
             path = path.encode('ascii')
             parentpath =  '/'.join(path.split('/')[:-1])
             parenturl = urllib.basejoin(self.target,parentpath)
@@ -93,6 +95,8 @@ class RemoteConstructorSection(object):
                         #import pdb; pdb.set_trace()
 
                         if oldid and redir and oldparenturl != parenturl and self.move(item):
+                            # previous uploaded contentn needs to be moved to new location
+                            self.logger.debug("%s previously uploaded to %s, moving"% (path,oldpath) )
                             oldparent = xmlrpclib.ServerProxy(oldparenturl, allow_none=True)
                             cp_data = oldparent.manage_cutObjects([oldid], None)
                             parent.manage_pasteObjects(cp_data)
@@ -104,20 +108,24 @@ class RemoteConstructorSection(object):
                             pass
 
                         if oldid and redir and oldid != id and self.move(item):
+                            self.logger.debug("%s previously uploaded to %s, renaming"% (path,oldpath) )
                             parent.manage_renameObject(oldid, id)
                             moved = True
                         else:
                             #id = oldid
                             pass
-                        path = '/'.join([parentpath, id])
+
+                        if parentpath:
+                            path = '/'.join([parentpath, id])
                         item['_path'] = path
+
                     #test paths in case of acquition
                     url = urllib.basejoin(self.target, path)
                     proxy = xmlrpclib.ServerProxy(url)
 
                     try:
                         rpath = proxy.getPhysicalPath()
-                        rpath = rpath[len(basepath):]
+                        rpath = '/'.join(rpath[len(basepath):])
 
                         if rpath != item['_path']:
                             # Doesn't already exist
@@ -130,37 +138,42 @@ class RemoteConstructorSection(object):
                         #self.logger.error("%s raised %s"%(path,e))
                         existingtype = None
 
+                    
+
                     if existingtype and existingtype != type_ and self.remove(item):
                         self.logger.info("%s already exists. but is %s instead of %s. Deleting"% (path,existingtype, type_) )
                         parent.manage_delObjects([id])
                     elif existingtype:
                         # path == '/'.join(rpath):
                         if moved:
-                            self.logger.info("%s moved existing item"% (path) )
+                            self.logger.debug("%s moved existing item"% (path) )
                         else:
-                            self.logger.info("%s already exists. Not creating"% (path) )
+                            self.logger.debug("%s already exists. Not creating"% (path) )
                         break
                     #purl = urllib.basejoin(self.target,container)
                     #pproxy = xmlrpclib.ServerProxy(purl)
                     try:
                         if self.create(item):
-                            parent.invokeFactory(type_, id)
-                            self.logger.info("%s Created with type=%s"% (path, type_) )
+                            self.logger.debug("%s creating as %s" % (path, type_))
+                            try:
+                                parent.invokeFactory(type_, id)
+                            except xmlrpclib.ProtocolError, e:
+                                # 302 means content was created correctly
+                                if e.errcode != 302:
+                                    raise
+                            self.logger.debug("%s Created with type=%s" % (path, type_))
                             item[self.creation_key] = True
-                    except xmlrpclib.ProtocolError,e:
-                        if e.errcode == 302:
-                            pass
-                        else:
-                            self.logger.warning("Failuire while creating '%s' of type '%s: %s'"% (path, type_, e) )
-                            pass
+                    except xmlrpclib.ProtocolError, e:
+                        self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
+                        pass
                     except xmlrpclib.Fault, e:
-                        self.logger.warning("Failuire while creating '%s' of type '%s: %s'"% (path, type_, e) )
+                        self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
                         pass
                     break
                 except xmlrpclib.ProtocolError, e:
                     if e.errcode == 503:
-                        continue
+                        self.logger.debug("%s raised %s. retyring" % (path, e))
                     else:
-                        self.logger.error("%s raised %s"%(path,e))
+                        self.logger.error("%s raised %s" % (path, e))
                         #raise
             yield item
