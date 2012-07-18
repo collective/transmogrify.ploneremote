@@ -70,9 +70,17 @@ class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
             if not remote_url.endswith("/"):
                 remote_url += "/"
 
+            # hacky way to get available transitions so we can avoid updating content
+            f = urllib.urlopen(urllib.basejoin(remote_url,'view'))
+            html = f.read()
+
             for transition in transitions:
-                transition_trigger_url = urllib.basejoin(remote_url,
-                    "content_status_modify?workflow_action=" + transition)
+                action = "content_status_modify?workflow_action=" + transition
+                transition_trigger_url = urllib.basejoin(remote_url, action)
+                if action not in html:
+                    self.logger.info('%s skipping (no action)'%(path))
+                    continue
+
                 self.logger.info("%s performing transition '%s'" % (path,
                     transition))
                 from httplib import HTTPException
