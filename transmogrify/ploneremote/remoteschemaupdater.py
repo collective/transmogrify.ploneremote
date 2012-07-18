@@ -8,6 +8,8 @@ import urllib
 import xmlrpclib
 import logging
 from collective.transmogrifier.utils import Condition, Expression
+import datetime
+import DateTime
 
 
 
@@ -22,6 +24,7 @@ class RemoteSchemaUpdaterSection(object):
         self.logger = logging.getLogger(name)
         self.condition=Condition(options.get('condition','python:True'), transmogrifier, name, options)
         self.skip_existing = options.get('skip-existing','False').lower() in ['true','yes']
+        self.skip_unmodified = options.get('skip-unmodified','True').lower() in ['true','yes']
         if self.target:
             self.target = self.target.rstrip('/') + '/'
 
@@ -89,6 +92,22 @@ class RemoteSchemaUpdaterSection(object):
                 # Without this plone 4.1 doesn't update html correctly
                 self.logger.debug("'%s' set content type" %(item['_mimetype']))
                 fields['ContentType'] = (item['_mimetype'], {})
+            if '_content_info' in item:
+                modified = item['_content_info'].get('last-modified','')
+                if 'modificationDate' not in fields:
+                    fields['modificationDate'] = (modified, {})
+                #modified = datetime.datetime.strptime(modified, "%Y-%m-%dT%H:%M:%S.Z")
+                modified = DateTime.DateTime(modified)
+
+            else:
+                modified = None
+
+            smodified = proxy.ModificationDate()
+            #smodified = datetime.datetime.strptime(smodified, "%Y-%m-%dT%H:%M:%S.Z")
+            smodified = DateTime.DateTime(smodified)
+            if self.skip_unmodified and modified and smodified and modified <= smodified:
+                self.logger.info('%s skipping (unmodified)'%(path))
+                yield item; continue
 
             for key, parts in fields.items():
                 value, arguments = parts
@@ -151,9 +170,13 @@ class RemoteSchemaUpdaterSection(object):
             if fields:
                 self.logger.info('%s set fields=%s'%(path, fields.keys()))
                 try:
-                    proxy.update() #does indexing
+                    #proxy.update() #does indexing
+                    proxy.reindexObject(fields.keys())
                 except xmlrpclib.Fault, e:
                     self.logger.error("%s.update() raised %s"%(path,e))
                 except xmlrpclib.ProtocolError, e:
                     self.logger.error("%s.update() raised %s"%(path,e))
+            else:
+                self.logger.info('%s no fields to set'%(path))
+
             yield item
