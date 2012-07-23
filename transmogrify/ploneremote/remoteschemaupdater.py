@@ -25,6 +25,9 @@ class RemoteSchemaUpdaterSection(object):
         self.condition=Condition(options.get('condition','python:True'), transmogrifier, name, options)
         self.skip_existing = options.get('skip-existing','False').lower() in ['true','yes']
         self.skip_unmodified = options.get('skip-unmodified','True').lower() in ['true','yes']
+        self.skip_fields = set([f.strip() for f in options.get('skip-fields','').split('\n') if f.strip()])
+        self.creation_key = options.get('creation-key', '_creation_flag').strip()
+
         if self.target:
             self.target = self.target.rstrip('/') + '/'
 
@@ -65,11 +68,10 @@ class RemoteSchemaUpdaterSection(object):
                 self.logger.info('%s skipping (condition)'%(path))
                 yield item; continue
 
-            #if self.skip_existing:
-            #    import pdb; pdb.set_trace()
-            #    if proxy.CreationDate() != proxy.ModificationDate():
-            #        self.logger.info('%s skipping existing'%(path))
-            #        yield item; continue
+            if self.skip_existing and self.creation_key:
+                if str(item.get(self.creation_key, 'True')).lower() in ['false', 'off']:
+                    self.logger.info('%s skipping existing'%(path))
+                    yield item; continue
 
 
             # handle complex fields e.g. image = ..., image.filename = 'blah.gif', image.mimetype = 'image/gif'
@@ -109,8 +111,11 @@ class RemoteSchemaUpdaterSection(object):
                 self.logger.info('%s skipping (unmodified)'%(path))
                 yield item; continue
 
+
             for key, parts in fields.items():
                 value, arguments = parts
+                if key in self.skip_fields:
+                    continue
 
                 if type(value) == type(u''):
                     value = value.encode('utf8')
@@ -153,6 +158,8 @@ class RemoteSchemaUpdaterSection(object):
                         f.close()
                         self.logger.error("%s.set%s(%s) raised %s" % (
                             path, method, arguments, e))
+                    else:
+                        updated.append(key)
                 else:
                     # setModificationDate doesn't use 'value' keyword
                     try:
@@ -161,17 +168,17 @@ class RemoteSchemaUpdaterSection(object):
                             value = xmlrpclib.Binary(value)  
 
                         getattr(proxy, 'set%s' % method)(value)
+                        updated.append(key)
 
                     except xmlrpclib.Fault, e:
                         self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
                     except xmlrpclib.ProtocolError, e:
                         self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
-                    updated.append(key)
-            if fields:
-                self.logger.info('%s set fields=%s'%(path, fields.keys()))
+            if updated:
+                self.logger.info('%s set fields=%s'%(path, updated))
                 try:
                     #proxy.update() #does indexing
-                    proxy.reindexObject(fields.keys())
+                    proxy.reindexObject(updated)
                 except xmlrpclib.Fault, e:
                     self.logger.error("%s.update() raised %s"%(path,e))
                 except xmlrpclib.ProtocolError, e:
