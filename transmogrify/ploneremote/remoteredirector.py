@@ -38,7 +38,7 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand):
 
             proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
             if not self.condition(item, proxy=proxy):
-                self.logger.info('%s skipping (condition)'%(path))
+                self.logger.debug('%s skipping (condition)'%(path))
                 yield item; continue
 
             

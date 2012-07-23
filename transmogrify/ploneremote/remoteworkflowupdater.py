@@ -52,18 +52,14 @@ class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
                 yield item
                 continue
 
+            path, transitions = item[pathkey], item[transitionskey]
             proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
             if not self.condition(item, proxy=proxy):
-                self.logger.info('%s skipping (condition)'%(path))
+                self.logger.debug('%s skipping (condition)'%(path))
                 yield item; continue
 
-            path, transitions = item[pathkey], item[transitionskey]
             if isinstance(transitions, basestring):
                 transitions = (transitions,)
-
-            if not self.condition(item, proxy=proxy):
-                self.logger.info('%s skipping (condition)'%(path))
-                yield item; continue
 
 
             remote_url = urllib.basejoin(self.target, path)
@@ -78,10 +74,10 @@ class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
                 action = "content_status_modify?workflow_action=" + transition
                 transition_trigger_url = urllib.basejoin(remote_url, action)
                 if action not in html:
-                    self.logger.info('%s skipping (no action)'%(path))
+                    self.logger.debug('%s skipping (no action)'%(path))
                     continue
 
-                self.logger.info("%s performing transition '%s'" % (path,
+                self.logger.debug("%s performing transition '%s'" % (path,
                     transition))
                 from httplib import HTTPException
                 try:
