@@ -9,7 +9,9 @@ import xmlrpclib
 import urllib
 import urlparse
 import logging
-
+import httplib
+import base64
+import string
 
 class RemoteConstructorSection(object):
     classProvides(ISectionBlueprint)
@@ -43,6 +45,9 @@ class RemoteConstructorSection(object):
             virtualpath = proxy.virtual_url_path()
             portal_url = self.target[:-len(virtualpath)-1]
 
+        # record subjects of a folder (indexed by path) so we can set position
+        subobjects = {}
+
         for item in self.previous:
             if not self.target:
                 yield item
@@ -61,6 +66,8 @@ class RemoteConstructorSection(object):
             parentpath =  '/'.join(path.split('/')[:-1])
             parenturl = urllib.basejoin(self.target,parentpath)
             parent = xmlrpclib.ServerProxy(parenturl)
+
+            subobjects.setdefault(parentpath,[]).append(item)
 
 
             #fti = self.ttool.getTypeInfo(type_)
@@ -82,11 +89,30 @@ class RemoteConstructorSection(object):
                         # old_url = portal_url+item['_orig_path']
                         # XXX: referers to target and not portal
                         old_url = self.target  + item['_orig_path']
-                        f = urllib.urlopen(old_url)
-                        redir = f.code == 200
 
-                        _,_,oldpath,_,_,_ = urlparse.urlparse(f.geturl())
+                        # this downloads file. We need a way to do this without the download
+                        _,host,targetpath,_,_,_ = urlparse.urlparse(self.target)
+                        if '@' in host:
+                            auth,host = host.split('@')
+                        else:
+                            auth = None
+
+                        conn = httplib.HTTPConnection(host)
+                        headers = {}
+                        if auth:
+                            auth = 'Basic ' + string.strip(base64.encodestring(auth))
+                            headers['Authorization'] = auth
+                        # /view is a hack as zope seems to send all content on head request
+                        conn.request("HEAD", targetpath+item['_orig_path'], headers=headers)
+                        res = conn.getresponse()
+                        redir = res.status == 301
+                        if redir and res.getheader('location'):
+                            _,_,oldpath,_,_,_ = urlparse.urlparse(res.getheader('location'))
+                        else:
+                            oldpath = targetpath+item['_orig_path']
                         parts = oldpath.split('/')
+                        if parts[-1] == 'view':
+                            parts = parts[:-1]
                         oldparentpath,oldid = parts[:-1],parts[-1]
                         oldparentpath = '/'.join(oldparentpath)
                         oldparenturl = urllib.basejoin(self.target, oldparentpath)
@@ -109,7 +135,19 @@ class RemoteConstructorSection(object):
 
                         if oldid and redir and oldid != id and self.move(item):
                             self.logger.debug("%s previously uploaded to %s, renaming"% (path,oldpath) )
-                            parent.manage_renameObject(oldid, id)
+                            try:
+                                parent.manage_renameObject(oldid, id)
+                            except:
+                                # something already has that id. need to delete it
+                                for i in range(1,20):
+                                    try:
+                                        parent.manage_renameObject(id, "%s-%s"%(id,i))
+                                        break
+                                    except:
+                                        pass
+                                parent.manage_renameObject(oldid, id)
+
+
                             moved = True
                         else:
                             #id = oldid
@@ -143,17 +181,27 @@ class RemoteConstructorSection(object):
                     if existingtype and existingtype != type_ and self.remove(item):
                         self.logger.info("%s already exists. but is %s instead of %s. Deleting"% (path,existingtype, type_) )
                         parent.manage_delObjects([id])
+                        existingtype = None
+                    elif existingtype and existingtype != type_ and self.move(item):
+                        self.logger.info("%s already exists. but is %s instead of %s. Moving"% (path,existingtype, type_) )
+                        for i in range(1,20):
+                            try:
+                                parent.manage_renameObject(id, id+'-%s'%i)
+                                break
+                            except xmlrpclib.Fault:
+                                pass
+                        existingtype = None
+
                     elif existingtype:
                         # path == '/'.join(rpath):
                         if moved:
                             self.logger.debug("%s moved existing item"% (path) )
                         else:
                             self.logger.debug("%s already exists. Not creating"% (path) )
-                        break
                     #purl = urllib.basejoin(self.target,container)
                     #pproxy = xmlrpclib.ServerProxy(purl)
                     try:
-                        if self.create(item):
+                        if not existingtype and self.create(item):
                             self.logger.debug("%s creating as %s" % (path, type_))
                             try:
                                 parent.invokeFactory(type_, id)
@@ -169,7 +217,14 @@ class RemoteConstructorSection(object):
                     except xmlrpclib.Fault, e:
                         self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
                         pass
+
+                    # now try setting position
+                    position = len(subobjects[parentpath])-1
+                    self.logger.debug("'%s' setting position=%s"%(path,position))
+                    parent.moveObjectToPosition(id, position)
+
                     break
+
                 except xmlrpclib.ProtocolError, e:
                     if e.errcode == 503:
                         self.logger.debug("%s raised %s. retyring" % (path, e))
