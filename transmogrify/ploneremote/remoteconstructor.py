@@ -64,7 +64,7 @@ class RemoteConstructorSection(object):
             
             path = path.encode('ascii')
             parentpath =  '/'.join(path.split('/')[:-1])
-            parenturl = urllib.basejoin(self.target,parentpath)
+            parenturl = urllib.basejoin(self.target, parentpath.lstrip('/'))
             parent = xmlrpclib.ServerProxy(parenturl)
 
             subobjects.setdefault(parentpath,[]).append(item)
@@ -118,7 +118,6 @@ class RemoteConstructorSection(object):
                         oldparenturl = urllib.basejoin(self.target, oldparentpath)
                         if '_origin' not in item:
                             item['_origin'] = item['_path']
-                        #import pdb; pdb.set_trace()
 
                         if oldid and redir and oldparenturl != parenturl and self.move(item):
                             # previous uploaded contentn needs to be moved to new location
@@ -158,12 +157,13 @@ class RemoteConstructorSection(object):
                         item['_path'] = path
 
                     #test paths in case of acquition
-                    url = urllib.basejoin(self.target, path)
+                    url = urllib.basejoin(parenturl, path.lstrip('/'))
                     proxy = xmlrpclib.ServerProxy(url)
 
                     try:
                         rpath = proxy.getPhysicalPath()
-                        rpath = '/'.join(rpath[len(basepath):])
+                        # be sure to begin with a "/"
+                        rpath = "/"+'/'.join(rpath[len(basepath):]).lstrip('/')
 
                         if rpath != item['_path']:
                             # Doesn't already exist
