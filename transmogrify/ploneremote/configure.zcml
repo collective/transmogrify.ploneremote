@@ -24,5 +24,7 @@
     <utility component=".remoteprune.RemotePruneSection"
                      name="transmogrify.ploneremote.remoteprune" />
 
+    <utility component=".remoteportlets.RemotePortlets"
+                     name="transmogrify.ploneremote.remoteportlets" />
 
 </configure>
