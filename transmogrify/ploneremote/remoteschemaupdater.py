@@ -177,12 +177,12 @@ class RemoteSchemaUpdaterSection(object):
             if updated:
                 self.logger.info('%s set fields=%s'%(path, updated))
                 try:
-                    #proxy.update() #does indexing
+                    # doesn't set modified
                     proxy.reindexObject(updated)
                 except xmlrpclib.Fault, e:
-                    self.logger.error("%s.update() raised %s"%(path,e))
+                    self.logger.error("%s.reindexObject() raised %s"%(path,e))
                 except xmlrpclib.ProtocolError, e:
-                    self.logger.error("%s.update() raised %s"%(path,e))
+                    self.logger.error("%s.reindexObject() raised %s"%(path,e))
             else:
                 self.logger.info('%s no fields to set'%(path))
 
