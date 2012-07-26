@@ -69,15 +69,16 @@ class RemotePruneSection(PathBasedAbstractRemoteCommand):
 
     def deleteRemoteObjects(self, item, ids):
         """ Perform object deletion over XML-RPC """
+        path = item.get('_path')
         if not len(ids):
-            self.logger.debug("nothing to remove %s" % (self.trash))
+            self.logger.debug("'%s' nothing to prune" % (path))
             return
 
         url = self.constructRemoteURL(item)
         proxy = xmlrpclib.ServerProxy(url, allow_none=True)
         if self.trash:
             # we have a trash path so we'll move items to here instead of del (prevents linkintegrity errors)
-            self.logger.debug("moving to %s: %s" % (self.trash, ids))
+            self.logger.debug("'%s' moving to %s: %s" % (path, self.trash, ids))
             trash_url = self.target+self.trash
             trash = xmlrpclib.ServerProxy(trash_url, allow_none=True)
             if url == self.target:
@@ -87,12 +88,12 @@ class RemotePruneSection(PathBasedAbstractRemoteCommand):
             try:
                 cp_data = proxy.manage_cutObjects(ids, None)
             except:
-                self.logger.warning("Error trying to cut %s: %s" % (self.trash, ids))
+                self.logger.warning("'%s' Error trying to cut %s: %s" % (path, self.trash, ids))
                 return
             try:
                 trash.manage_pasteObjects(cp_data, None)
             except:
-                self.logger.warning("Error trying to paste %s: %s" % (self.trash, ids))
+                self.logger.warning("'%s' Error trying to paste %s: %s" % (path, self.trash, ids))
                 return
 
 
