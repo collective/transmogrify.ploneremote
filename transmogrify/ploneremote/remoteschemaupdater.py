@@ -99,14 +99,18 @@ class RemoteSchemaUpdaterSection(object):
                 if 'modificationDate' not in fields:
                     fields['modificationDate'] = (modified, {})
                 #modified = datetime.datetime.strptime(modified, "%Y-%m-%dT%H:%M:%S.Z")
-                modified = DateTime.DateTime(modified)
+                if modified:
+                    modified = DateTime.DateTime(modified)
+                else:
+                    modified = None
 
             else:
                 modified = None
 
             smodified = proxy.ModificationDate()
             #smodified = datetime.datetime.strptime(smodified, "%Y-%m-%dT%H:%M:%S.Z")
-            smodified = DateTime.DateTime(smodified)
+            if type(smodified) == type(''):
+                smodified = DateTime.DateTime(smodified)
             if self.skip_unmodified and modified and smodified and modified <= smodified:
                 self.logger.info('%s skipping (unmodified)'%(path))
                 yield item; continue
