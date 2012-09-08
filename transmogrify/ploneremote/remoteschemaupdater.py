@@ -27,6 +27,7 @@ class RemoteSchemaUpdaterSection(object):
         self.skip_unmodified = options.get('skip-unmodified','True').lower() in ['true','yes']
         self.skip_fields = set([f.strip() for f in options.get('skip-fields','').split('\n') if f.strip()])
         self.creation_key = options.get('creation-key', '_creation_flag').strip()
+        self.headers_key= options.get('headers-key','_content_info').strip()
 
         if self.target:
             self.target = self.target.rstrip('/') + '/'
@@ -94,8 +95,8 @@ class RemoteSchemaUpdaterSection(object):
                 # Without this plone 4.1 doesn't update html correctly
                 self.logger.debug("'%s' set content type" %(item['_mimetype']))
                 fields['ContentType'] = (item['_mimetype'], {})
-            if '_content_info' in item:
-                modified = item['_content_info'].get('last-modified','')
+            if self.headers_key in item:
+                modified = item[self.headers_key].get('last-modified','')
                 if 'modificationDate' not in fields:
                     fields['modificationDate'] = (modified, {})
                 #modified = datetime.datetime.strptime(modified, "%Y-%m-%dT%H:%M:%S.Z")

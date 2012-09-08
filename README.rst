@@ -81,6 +81,20 @@ Options:
 :skip-existing:
   Default is 'False'
 
+:skip_unmodified:
+  if set to true and the items modification date is less than the modification date of
+  the remote item then no fields will be updated. The modification date either comes
+  from 'modificationDate' key in the item or the 'last-modified' header if item
+  was from `transmogrify.webcrawler`.
+
+:headers-key:
+  key for dictionary of headers such as added by transmogrify.webcrawler
+
+:skip_fields:
+  Fields that won't be updated
+
+:creation_key:
+  if skip existing is true and this field is set in the item the remote item is not updated
 
 transmogrify.ploneremote.remoteworkflowupdater
 ==============================================
@@ -149,6 +163,9 @@ Options:
      if the prune folder is run against the remote folder.
      The default value os "_prune-folder"
 
+:trash-path:
+  remote folder to set to move content items not specified locally. If empty
+
 transmogrify.ploneremote.remotenavigationexcluder
 =================================================
 
@@ -166,6 +183,23 @@ Options:
   Which key we use to read navigation exclusion hint.
   Default is 'exclude-from-navigation'
 
+transmogrify.ploneremote.remoteportlets
+=======================================
+
+Set static text portlets. If items contain a key such as '_left_portlet_text_1' it will create
+a static text portlet at '_path' as the first portlet on the left.
+
+:left-title-prefix:
+  defaults to _left_portlet_title.
+
+:left-text-prefix:
+  defaults to _left_portlet_text.
+
+:right-title-prefix:
+  defaults to _right_portlet_title.
+
+:right-text-prefix:
+  defaults to _right_portlet_text.
 
 Authors
 --------------

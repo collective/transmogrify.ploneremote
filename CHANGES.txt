@@ -1,6 +1,15 @@
-1.2.1dev (Unreleased)
----------------------
-
+1.3 (2012-09-08)
+----------------
+- support setting modified date from last modified header or custom field [djay]
+- if existing content will avoid reseting modification date [djay]
+- support setting a static portlet [djay]
+- support setting possition in parent [djay]
+- improve logging messages, less INFO output [djay] 
+- honour parent folder when it's not plone root [Mathieu Le Marec - Pasquet]
+- fix skip_existing and support skip_fields to control whats updated [djay]
+- HEAD request to determine redir, move instead of delete if exisitng content and now sets position in parent
+- fixed prune to use listFolderContents and handle moving instead of delete [djay]
+- fix existing image detection [Ivan Teoh]
 - check if oldid exists before to try to move an object [gborelli]
 - improved checking of existing items in remoteconstructor [gborelli]
 - don't join the path when parentpath is empty [ivanteoh]
@@ -52,7 +61,7 @@
 
 - Added remote folder pruning ["Mikko Ohtamaa"]
 
-- skips if there are no target ["Dylan Jay"]
+- skips if there are no target ["djay"]
 
 - add remoteredirector blueprint ["Vitaliy Podoba"]
 
@@ -65,5 +74,5 @@
 ------------------
 
 - split from pretaweb.funnelweb and released
-  ["Dylan Jay"]
+  ["djay"]
 
