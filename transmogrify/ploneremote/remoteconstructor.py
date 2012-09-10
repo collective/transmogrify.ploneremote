@@ -29,6 +29,7 @@ class RemoteConstructorSection(object):
                                       ('portal_type', 'Type', '_type'))
         self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
         self.creation_key = options.get('creation-key', '_creation_flag').strip()
+        self.alias_key = options.get('alias-key', '_origin_path').strip()
         self.target = options.get('target','')
         self.logger = logging.getLogger(name)
         if self.target:
@@ -41,9 +42,10 @@ class RemoteConstructorSection(object):
 
         if self.target:
             proxy = xmlrpclib.ServerProxy(self.target)
-            basepath = proxy.getPhysicalPath()
+            self.basepath = proxy.getPhysicalPath()
             virtualpath = proxy.virtual_url_path()
             portal_url = self.target[:-len(virtualpath)-1]
+            _,host,targetpath,_,_,_ = urlparse.urlparse(self.target)
 
         # record subjects of a folder (indexed by path) so we can set position
         subobjects = {}
@@ -61,7 +63,6 @@ class RemoteConstructorSection(object):
                 yield item
                 continue
 
-            
             path = path.encode('ascii')
             parentpath =  '/'.join(path.split('/')[:-1])
             parenturl = urllib.basejoin(self.target, parentpath.lstrip('/'))
@@ -79,156 +80,161 @@ class RemoteConstructorSection(object):
             elems = path.strip('/').rsplit('/', 1)
             container, id = (len(elems) == 1 and ('', elems[0]) or elems)
 
-            for attempt in range(0, 3):
+            #if id == 'index.html':
+            #see if content already uploaded to another location
+            moved = False
+            if self.alias_key in item:
+                orig_path = item[self.alias_key]
+            else:
+                orig_path = item.get(self.pathkey(*keys)[0])
+
+            # oldpath is where item is now on the remote
+            redir = self.checkRedir(orig_path)
+            if redir is None:
+                oldpath = targetpath+orig_path
+            else:
+                oldpath = redir
+            parts = oldpath.split('/')
+            oldparentpath,oldid = parts[:-1],parts[-1]
+            oldparentpath = '/'.join(oldparentpath)
+            oldparenturl = urllib.basejoin(self.target, oldparentpath)
+            if '_origin' not in item:
+                item['_origin'] = item.get(self.pathkey(*keys)[0])
+
+            if oldid and redir and oldparenturl != parenturl and self.move(item):
+                # previous uploaded contentn needs to be moved to new location
+                self.logger.debug("%s previously uploaded to %s, moving"% (path,oldpath) )
+                oldparent = xmlrpclib.ServerProxy(oldparenturl, allow_none=True)
+                cp_data = oldparent.manage_cutObjects([oldid], None)
+                parent.manage_pasteObjects(cp_data)
+                moved = True
+            else:
+                #parentpath = oldparentpath
+                #parenturl = oldparenturl
+                #parent = xmlrpclib.ServerProxy(parenturl)
+                pass
+
+            if oldid and redir and oldid != id and self.move(item):
+                self.logger.debug("%s previously uploaded to %s, renaming"% (path,oldpath) )
                 try:
-
-                    #if id == 'index.html':
-                    #see if content already uploaded to another location
-                    moved = False
-                    if '_orig_path' in item:
-                        # old_url = portal_url+item['_orig_path']
-                        # XXX: referers to target and not portal
-                        old_url = self.target  + item['_orig_path']
-
-                        # this downloads file. We need a way to do this without the download
-                        _,host,targetpath,_,_,_ = urlparse.urlparse(self.target)
-                        if '@' in host:
-                            auth,host = host.split('@')
-                        else:
-                            auth = None
-
-                        conn = httplib.HTTPConnection(host)
-                        headers = {}
-                        if auth:
-                            auth = 'Basic ' + string.strip(base64.encodestring(auth))
-                            headers['Authorization'] = auth
-                        # /view is a hack as zope seems to send all content on head request
-                        conn.request("HEAD", targetpath+item['_orig_path'], headers=headers)
-                        res = conn.getresponse()
-                        redir = res.status == 301
-                        if redir and res.getheader('location'):
-                            _,_,oldpath,_,_,_ = urlparse.urlparse(res.getheader('location'))
-                        else:
-                            oldpath = targetpath+item['_orig_path']
-                        parts = oldpath.split('/')
-                        if parts[-1] == 'view':
-                            parts = parts[:-1]
-                        oldparentpath,oldid = parts[:-1],parts[-1]
-                        oldparentpath = '/'.join(oldparentpath)
-                        oldparenturl = urllib.basejoin(self.target, oldparentpath)
-                        if '_origin' not in item:
-                            item['_origin'] = item['_path']
-
-                        if oldid and redir and oldparenturl != parenturl and self.move(item):
-                            # previous uploaded contentn needs to be moved to new location
-                            self.logger.debug("%s previously uploaded to %s, moving"% (path,oldpath) )
-                            oldparent = xmlrpclib.ServerProxy(oldparenturl, allow_none=True)
-                            cp_data = oldparent.manage_cutObjects([oldid], None)
-                            parent.manage_pasteObjects(cp_data)
-                            moved = True
-                        else:
-                            #parentpath = oldparentpath
-                            #parenturl = oldparenturl
-                            #parent = xmlrpclib.ServerProxy(parenturl)
+                    parent.manage_renameObject(oldid, id)
+                except:
+                    # something already has that id. need to delete it
+                    for i in range(1,20):
+                        try:
+                            parent.manage_renameObject(id, "%s-%s"%(id,i))
+                            break
+                        except:
                             pass
+                    parent.manage_renameObject(oldid, id)
+                moved = True
+            else:
+                #id = oldid
+                pass
 
-                        if oldid and redir and oldid != id and self.move(item):
-                            self.logger.debug("%s previously uploaded to %s, renaming"% (path,oldpath) )
-                            try:
-                                parent.manage_renameObject(oldid, id)
-                            except:
-                                # something already has that id. need to delete it
-                                for i in range(1,20):
-                                    try:
-                                        parent.manage_renameObject(id, "%s-%s"%(id,i))
-                                        break
-                                    except:
-                                        pass
-                                parent.manage_renameObject(oldid, id)
+            if parentpath:
+                path = '/'.join([parentpath, id])
+            item[self.pathkey(*keys)[0]] = path
 
+            existingtype = self.checkType(path)
 
-                            moved = True
-                        else:
-                            #id = oldid
-                            pass
-
-                        if parentpath:
-                            path = '/'.join([parentpath, id])
-                        item['_path'] = path
-
-                    #test paths in case of acquition
-                    url = urllib.basejoin(parenturl, path.lstrip('/'))
-                    proxy = xmlrpclib.ServerProxy(url)
-
+            if existingtype and existingtype != type_ and self.remove(item):
+                self.logger.info("%s already exists. but is %s instead of %s. Deleting"% (path,existingtype, type_) )
+                parent.manage_delObjects([id])
+                existingtype = None
+            elif existingtype and existingtype != type_ and self.move(item):
+                self.logger.info("%s already exists. but is %s instead of %s. Moving"% (path,existingtype, type_) )
+                for i in range(1,20):
                     try:
-                        rpath = proxy.getPhysicalPath()
-                        # be sure to begin with a "/"
-                        rpath = "/"+'/'.join(rpath[len(basepath):]).lstrip('/')
+                        parent.manage_renameObject(id, id+'-%s'%i)
+                        break
+                    except xmlrpclib.Fault:
+                        pass
+                existingtype = None
 
-                        if rpath != item['_path']:
-                            # Doesn't already exist
-                            existingtype = None
-                        else:
-                            typeinfo = proxy.getTypeInfo()
-                            existingtype = typeinfo.get('id')
-                    except xmlrpclib.Fault, e:
-                        # Doesn't already exist
-                        #self.logger.error("%s raised %s"%(path,e))
-                        existingtype = None
-
-                    
-
-                    if existingtype and existingtype != type_ and self.remove(item):
-                        self.logger.info("%s already exists. but is %s instead of %s. Deleting"% (path,existingtype, type_) )
-                        parent.manage_delObjects([id])
-                        existingtype = None
-                    elif existingtype and existingtype != type_ and self.move(item):
-                        self.logger.info("%s already exists. but is %s instead of %s. Moving"% (path,existingtype, type_) )
-                        for i in range(1,20):
-                            try:
-                                parent.manage_renameObject(id, id+'-%s'%i)
-                                break
-                            except xmlrpclib.Fault:
-                                pass
-                        existingtype = None
-
-                    elif existingtype:
-                        # path == '/'.join(rpath):
-                        if moved:
-                            self.logger.debug("%s moved existing item"% (path) )
-                        else:
-                            self.logger.debug("%s already exists. Not creating"% (path) )
-                    #purl = urllib.basejoin(self.target,container)
-                    #pproxy = xmlrpclib.ServerProxy(purl)
+            elif existingtype:
+                # path == '/'.join(rpath):
+                if moved:
+                    self.logger.debug("%s moved existing item"% (path) )
+                else:
+                    self.logger.debug("%s already exists. Not creating"% (path) )
+            #purl = urllib.basejoin(self.target,container)
+            #pproxy = xmlrpclib.ServerProxy(purl)
+            try:
+                if not existingtype and self.create(item):
+                    self.logger.debug("%s creating as %s" % (path, type_))
                     try:
-                        if not existingtype and self.create(item):
-                            self.logger.debug("%s creating as %s" % (path, type_))
-                            try:
-                                parent.invokeFactory(type_, id)
-                            except xmlrpclib.ProtocolError, e:
-                                # 302 means content was created correctly
-                                if e.errcode != 302:
-                                    raise
-                            self.logger.debug("%s Created with type=%s" % (path, type_))
-                            item[self.creation_key] = True
+                        parent.invokeFactory(type_, id)
                     except xmlrpclib.ProtocolError, e:
-                        self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
-                        pass
-                    except xmlrpclib.Fault, e:
-                        self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
-                        pass
+                        # 302 means content was created correctly
+                        if e.errcode != 302:
+                            raise
+                    self.logger.debug("%s Created with type=%s" % (path, type_))
+                    item[self.creation_key] = True
+            except xmlrpclib.ProtocolError, e:
+                self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
+                pass
+            except xmlrpclib.Fault, e:
+                self.logger.warning("Failuire while creating '%s' of type '%s: %s'" % (path, type_, e))
+                pass
 
-                    # now try setting position
-                    position = len(subobjects[parentpath])-1
-                    self.logger.debug("'%s' setting position=%s"%(path,position))
-                    parent.moveObjectToPosition(id, position)
+            # now try setting position
+            position = len(subobjects[parentpath])-1
+            self.logger.debug("'%s' setting position=%s"%(path,position))
+            parent.moveObjectToPosition(id, position)
 
-                    break
-
-                except xmlrpclib.ProtocolError, e:
-                    if e.errcode == 503:
-                        self.logger.debug("%s raised %s. retyring" % (path, e))
-                    else:
-                        self.logger.error("%s raised %s" % (path, e))
-                        #raise
             yield item
+
+    def checkRedir(self, orig_path):
+        # old_url = portal_url+item['_orig_path']
+        # XXX: referers to target and not portal
+        old_url = self.target  + orig_path
+
+        # this downloads file. We need a way to do this without the download
+        _,host,targetpath,_,_,_ = urlparse.urlparse(self.target)
+        if '@' in host:
+            auth,host = host.split('@')
+        else:
+            auth = None
+
+        conn = httplib.HTTPConnection(host)
+        headers = {}
+        if auth:
+            auth = 'Basic ' + string.strip(base64.encodestring(auth))
+            headers['Authorization'] = auth
+        # /view is a hack as zope seems to send all content on head request
+        conn.request("HEAD", targetpath+orig_path, headers=headers)
+        res = conn.getresponse()
+        redir = res.status == 301
+        if redir and res.getheader('location'):
+            _,_,oldpath,_,_,_ = urlparse.urlparse(res.getheader('location'))
+            parts = oldpath.split('/')
+            if parts[-1] == 'view':
+                parts = parts[:-1]
+            return '/'.join(parts)
+        if res.status == 200:
+            return orig_path
+        return None
+
+    def checkType(self, path):
+
+
+        try:
+            #test paths in case of acquition. ie. /publicationsandresources/faq might return 'Folder' but really be /faq
+            url = '/'.join([self.target, path])
+            proxy = xmlrpclib.ServerProxy(url)
+            rpath = proxy.getPhysicalPath()
+            # be sure to begin with a "/"
+            rpath = "/"+'/'.join(rpath[len(self.basepath):]).lstrip('/')
+
+            if rpath != '/'+path:
+                # Doesn't already exist
+                existingtype = None
+            else:
+                typeinfo = proxy.getTypeInfo()
+                existingtype = typeinfo.get('id')
+        except xmlrpclib.Fault, e:
+            # Doesn't already exist
+            #self.logger.error("%s raised %s"%(path,e))
+            existingtype = None
+        return existingtype
