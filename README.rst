@@ -46,6 +46,13 @@ Options:
 :creation-key:
   Key of the field to determine if item should be created. Defaults to '_creation_flag'
 
+:alias-key:
+  Key of the field with a path of where the original content was found such as by
+  `transmogrifier.webcrawler`. `transmogrify.ploneremote.remoteredirector` will set
+  this path as an alias which allows the constructor to find the same content if
+  it is run a second time even if a the items desired path has changed. Defaults
+  to '_origin_path'.
+
 :create-condition:
   TAL expression to determine if item should be added. Defaults to 'python:True'
 
