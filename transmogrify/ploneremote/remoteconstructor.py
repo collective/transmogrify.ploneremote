@@ -232,7 +232,11 @@ class RemoteConstructorSection(object):
                 existingtype = None
             else:
                 typeinfo = proxy.getTypeInfo()
-                existingtype = typeinfo.get('id')
+                if type(typeinfo) == type({}):
+                    existingtype = typeinfo.get('id')
+                else:
+                    #it must not be a content object e.g. 'search'
+                    existingtype = None
         except xmlrpclib.Fault, e:
             # Doesn't already exist
             #self.logger.error("%s raised %s"%(path,e))
