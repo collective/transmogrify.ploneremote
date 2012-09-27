@@ -111,8 +111,13 @@ class AbstractRemoteCommand(object):
         value = self.extractKeyValue(item, matcher)
         if value is None:
             return None
+        if getattr(value,'lower'):
+            if value.lower().strip() in ['yes','true']:
+                value = True
+            elif value.lower().strip() in ['no','false','']:
+                value = False
         
-        if not value in [True,False]:
+        if not value in [True,False] :
             raise RuntimeError("Invalid truth value:" + str(value))
         
         return value
