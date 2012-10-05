@@ -193,7 +193,7 @@ class RemoteConstructorSection(object):
         # this downloads file. We need a way to do this without the download
         _,host,targetpath,_,_,_ = urlparse.urlparse(self.target)
         if '@' in host:
-            auth,host = host.split('@')
+            auth,host = host.rsplit('@',1)
         else:
             auth = None
 
