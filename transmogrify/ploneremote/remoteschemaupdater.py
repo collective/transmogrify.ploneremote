@@ -28,6 +28,7 @@ class RemoteSchemaUpdaterSection(object):
         self.skip_fields = set([f.strip() for f in options.get('skip-fields','').split('\n') if f.strip()])
         self.creation_key = options.get('creation-key', '_creation_flag').strip()
         self.headers_key= options.get('headers-key','_content_info').strip()
+        self.defaultpage_key = options.get('defaultpage-key','_defaultpage').strip()
 
         if self.target:
             self.target = self.target.rstrip('/') + '/'
@@ -52,6 +53,8 @@ class RemoteSchemaUpdaterSection(object):
 
 
             path = item[pathkey]
+
+
             # XXX Why basejoin?
             # url = urllib.basejoin(self.target, path)
             url = self.target + path
@@ -69,10 +72,14 @@ class RemoteSchemaUpdaterSection(object):
                 self.logger.info('%s skipping (condition)'%(path))
                 yield item; continue
 
-            if self.skip_existing and self.creation_key:
-                if str(item.get(self.creation_key, 'True')).lower() in ['false', 'off']:
-                    self.logger.info('%s skipping existing'%(path))
-                    yield item; continue
+            if self.creation_key and str(item.get(self.creation_key, 'True')).lower() in ['false', 'off']:
+                created = False
+            else:
+                created = True
+
+            if self.skip_existing and not created:
+                self.logger.info('%s skipping existing'%(path))
+                yield item; continue
 
 
             # handle complex fields e.g. image = ..., image.filename = 'blah.gif', image.mimetype = 'image/gif'
@@ -88,14 +95,17 @@ class RemoteSchemaUpdaterSection(object):
                     subkey = parts[1]
                     fields[key][1][subkey] = value
 
-            if '_defaultpage' in item:
-                self.logger.debug("'%s' set default page" %(item['_defaultpage']))
-                fields['DefaultPage'] = (item['_defaultpage'], {})
+            if self.defaultpage_key in item:
+                defaultpage = item[self.defaultpage_key]
+                self.logger.debug("'%s' setting default page (%s)" %(path, defaultpage))
+                fields['DefaultPage'] = (defaultpage, {})
             if '_mimetype' in item:
                 # Without this plone 4.1 doesn't update html correctly
-                self.logger.debug("'%s' set content type" %(item['_mimetype']))
+                self.logger.debug("'%s' setting content type (%s)" %(path, item['_mimetype']))
                 fields['ContentType'] = (item['_mimetype'], {})
-            if self.headers_key in item:
+            if created:
+                modified = None
+            elif self.headers_key in item:
                 modified = item[self.headers_key].get('last-modified','')
                 if 'modificationDate' not in fields:
                     fields['modificationDate'] = (modified, {})
