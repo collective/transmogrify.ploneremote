@@ -7,10 +7,9 @@ from collective.transmogrifier.utils import defaultKeys
 import urllib
 import xmlrpclib
 import logging
-from collective.transmogrifier.utils import Condition, Expression
-import datetime
+from collective.transmogrifier.utils import Condition
+#import datetime
 import DateTime
-
 
 
 class RemoteSchemaUpdaterSection(object):
@@ -22,13 +21,13 @@ class RemoteSchemaUpdaterSection(object):
         self.context = transmogrifier.context
         self.target = options['target']
         self.logger = logging.getLogger(name)
-        self.condition=Condition(options.get('condition','python:True'), transmogrifier, name, options)
-        self.skip_existing = options.get('skip-existing','False').lower() in ['true','yes']
-        self.skip_unmodified = options.get('skip-unmodified','True').lower() in ['true','yes']
-        self.skip_fields = set([f.strip() for f in options.get('skip-fields','').split('\n') if f.strip()])
+        self.condition = Condition(options.get('condition', 'python:True'), transmogrifier, name, options)
+        self.skip_existing = options.get('skip-existing', 'False').lower() in ['true', 'yes']
+        self.skip_unmodified = options.get('skip-unmodified', 'True').lower() in ['true', 'yes']
+        self.skip_fields = set([f.strip() for f in options.get('skip-fields', '').split('\n') if f.strip()])
         self.creation_key = options.get('creation-key', '_creation_flag').strip()
-        self.headers_key= options.get('headers-key','_content_info').strip()
-        self.defaultpage_key = options.get('defaultpage-key','_defaultpage').strip()
+        self.headers_key = options.get('headers-key', '_content_info').strip()
+        self.defaultpage_key = options.get('defaultpage-key', '_defaultpage').strip()
 
         if self.target:
             self.target = self.target.rstrip('/') + '/'
@@ -51,9 +50,7 @@ class RemoteSchemaUpdaterSection(object):
                 yield item
                 continue
 
-
             path = item[pathkey]
-
 
             # XXX Why basejoin?
             # url = urllib.basejoin(self.target, path)
@@ -66,11 +63,12 @@ class RemoteSchemaUpdaterSection(object):
             fields = {}
             updated = []
             proxy = xmlrpclib.ServerProxy(url)
-            multicall = xmlrpclib.MultiCall(proxy)
+            #multicall = xmlrpclib.MultiCall(proxy)
 
             if not self.condition(item, proxy=proxy):
-                self.logger.info('%s skipping (condition)'%(path))
-                yield item; continue
+                self.logger.info('%s skipping (condition)' % (path))
+                yield item
+                continue
 
             if self.creation_key and str(item.get(self.creation_key, 'True')).lower() in ['false', 'off']:
                 created = False
@@ -78,9 +76,9 @@ class RemoteSchemaUpdaterSection(object):
                 created = True
 
             if self.skip_existing and not created:
-                self.logger.info('%s skipping existing'%(path))
-                yield item; continue
-
+                self.logger.info('%s skipping existing' % (path))
+                yield item
+                continue
 
             # handle complex fields e.g. image = ..., image.filename = 'blah.gif', image.mimetype = 'image/gif'
             for key, value in item.iteritems():
@@ -97,16 +95,16 @@ class RemoteSchemaUpdaterSection(object):
 
             if self.defaultpage_key in item:
                 defaultpage = item[self.defaultpage_key]
-                self.logger.debug("'%s' setting default page (%s)" %(path, defaultpage))
+                self.logger.debug("'%s' setting default page (%s)" % (path, defaultpage))
                 fields['DefaultPage'] = (defaultpage, {})
             if '_mimetype' in item:
                 # Without this plone 4.1 doesn't update html correctly
-                self.logger.debug("'%s' setting content type (%s)" %(path, item['_mimetype']))
+                self.logger.debug("'%s' setting content type (%s)" % (path, item['_mimetype']))
                 fields['ContentType'] = (item['_mimetype'], {})
             if created:
                 modified = None
             elif self.headers_key in item:
-                modified = item[self.headers_key].get('last-modified','')
+                modified = item[self.headers_key].get('last-modified', '')
                 if 'modificationDate' not in fields:
                     fields['modificationDate'] = (modified, {})
                 #modified = datetime.datetime.strptime(modified, "%Y-%m-%dT%H:%M:%S.Z")
@@ -123,9 +121,9 @@ class RemoteSchemaUpdaterSection(object):
             if type(smodified) == type(''):
                 smodified = DateTime.DateTime(smodified)
             if self.skip_unmodified and modified and smodified and modified <= smodified:
-                self.logger.info('%s skipping (unmodified)'%(path))
-                yield item; continue
-
+                self.logger.info('%s skipping (unmodified)' % (path))
+                yield item
+                continue
 
             for key, parts in fields.items():
                 value, arguments = parts
@@ -153,19 +151,18 @@ class RemoteSchemaUpdaterSection(object):
                     arguments.update(dict(value=value))
                     input = urllib.urlencode(arguments)
                     f = None
-                    for attempt in range(0,3):
+                    for attempt in range(0, 3):
                         try:
-                            f = urllib.urlopen(url + '/set%s'%key.capitalize(), input)
+                            f = urllib.urlopen(url + '/set%s' % key.capitalize(), input)
                             break
                         except IOError, e:
                             #import pdb; pdb.set_trace()
-                            self.logger.warning("%s.set%s() raised %s"%(path,method,e))
+                            self.logger.warning("%s.set%s() raised %s" % (path, method, e))
                     if f is None:
-                        self.logger.warning("%s.set%s() raised too many errors. Giving up"%(path,method))
+                        self.logger.warning("%s.set%s() raised too many errors. Giving up" % (path, method))
                         break
 
-
-                    nurl = f.geturl()
+                    #nurl = f.geturl()
                     info = f.info()
                     #print method + str(arguments)
                     if info.status != '':
@@ -180,25 +177,25 @@ class RemoteSchemaUpdaterSection(object):
                     try:
                         # XXX Better way than catching method names?
                         if method == 'Image':    # wrap binary image data
-                            value = xmlrpclib.Binary(value)  
+                            value = xmlrpclib.Binary(value)
 
                         getattr(proxy, 'set%s' % method)(value)
                         updated.append(key)
 
                     except xmlrpclib.Fault, e:
-                        self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
+                        self.logger.error("%s.set%s(%s) raised %s" % (path, method, value, e))
                     except xmlrpclib.ProtocolError, e:
-                        self.logger.error("%s.set%s(%s) raised %s"%(path,method,value,e))
+                        self.logger.error("%s.set%s(%s) raised %s" % (path, method, value, e))
             if updated:
-                self.logger.info('%s set fields=%s'%(path, updated))
+                self.logger.info('%s set fields=%s' % (path, updated))
                 try:
                     # doesn't set modified
                     proxy.reindexObject(updated)
                 except xmlrpclib.Fault, e:
-                    self.logger.error("%s.reindexObject() raised %s"%(path,e))
+                    self.logger.error("%s.reindexObject() raised %s" % (path, e))
                 except xmlrpclib.ProtocolError, e:
-                    self.logger.error("%s.reindexObject() raised %s"%(path,e))
+                    self.logger.error("%s.reindexObject() raised %s" % (path, e))
             else:
-                self.logger.info('%s no fields to set'%(path))
+                self.logger.info('%s no fields to set' % (path))
 
             yield item

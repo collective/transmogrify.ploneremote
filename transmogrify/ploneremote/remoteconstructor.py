@@ -64,6 +64,7 @@ class RemoteConstructorSection(object):
                 continue
 
             path = path.encode('ascii')
+            path = self.removeInvalidChar(path)
             parentpath =  '/'.join(path.split('/')[:-1])
             parenturl = urllib.basejoin(self.target, parentpath.lstrip('/'))
             parent = xmlrpclib.ServerProxy(parenturl)
@@ -89,6 +90,7 @@ class RemoteConstructorSection(object):
                 orig_path = item.get(self.pathkey(*keys)[0])
 
             # oldpath is where item is now on the remote
+            orig_path = self.removeInvalidChar(orig_path)
             redir = self.checkRedir(orig_path)
             if redir is None:
                 oldpath = targetpath+orig_path
@@ -242,3 +244,7 @@ class RemoteConstructorSection(object):
             #self.logger.error("%s raised %s"%(path,e))
             existingtype = None
         return existingtype
+
+    def removeInvalidChar(self, path):
+        """ plone id does not like space during creating. So remove it. """
+        return path.replace(" ", "")
