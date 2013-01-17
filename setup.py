@@ -3,6 +3,18 @@ import os
 
 version = '1.3'
 
+install_requires=[
+    'setuptools',
+    # -*- Extra requirements: -*-
+    'collective.transmogrifier',
+    'transmogrify.siteanalyser',
+    ]
+try:
+    from collections import OrderedDict
+except ImportError:
+    # No OrderedDict, add `ordereddict` to requirements
+    install_requires.append('ordereddict')
+
 setup(name='transmogrify.ploneremote',
       version=version,
       description="""Transmogrifier blueprints for uploading content
@@ -25,12 +37,7 @@ setup(name='transmogrify.ploneremote',
       namespace_packages=['transmogrify'],
       include_package_data=True,
       zip_safe=False,
-      install_requires=[
-          'setuptools',
-          # -*- Extra requirements: -*-
-          'collective.transmogrifier',
-          'transmogrify.siteanalyser',
-          ],
+      install_requires=install_requires,
       entry_points="""
             [z3c.autoinclude.plugin]
             target = transmogrify

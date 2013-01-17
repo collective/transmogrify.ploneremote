@@ -15,8 +15,11 @@ from collective.transmogrifier.utils import defaultMatcher
 
 import xmlrpclib
 from base import PathBasedAbstractRemoteCommand
-from collections import OrderedDict
-
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 class RemotePruneSection(PathBasedAbstractRemoteCommand):
     """
