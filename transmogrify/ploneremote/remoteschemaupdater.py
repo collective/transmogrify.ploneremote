@@ -109,7 +109,10 @@ class RemoteSchemaUpdaterSection(object):
                     fields['modificationDate'] = (modified, {})
                 #modified = datetime.datetime.strptime(modified, "%Y-%m-%dT%H:%M:%S.Z")
                 if modified:
-                    modified = DateTime.DateTime(modified)
+                    try:
+                        modified = DateTime.DateTime(modified)
+                    except DateTime.interfaces.SyntaxError:
+                        modified = None
                 else:
                     modified = None
 
