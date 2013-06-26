@@ -11,6 +11,7 @@ from collective.transmogrifier.utils import Condition, Expression
 import datetime
 import DateTime
 
+from utils import replaceMicrosoftChars
 
 """ Simple blueprint to upload static text portlets to a page """
 
@@ -84,6 +85,7 @@ class RemotePortlets(object):
                         # it wasn't there
                         pass
 
+                    portlet['text'] = replaceMicrosoftChars(portlet['text'])
                     input = urllib.urlencode({'form.header':title,
                                               'form.text':portlet['text'],
                                               'form.omit_border':'checked',
