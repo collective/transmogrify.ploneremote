@@ -10,7 +10,7 @@ import logging
 from collective.transmogrifier.utils import Condition
 #import datetime
 import DateTime
-
+from ZPublisher.Client import Object, call
 
 class RemoteSchemaUpdaterSection(object):
     classProvides(ISectionBlueprint)
@@ -39,6 +39,24 @@ class RemoteSchemaUpdaterSection(object):
         self.pathkey = Matcher(*pathkeys)
 
     def __iter__(self):
+
+        # We will create a helper Python script on the server to help get around
+        # problems in the plone api for updating fields.
+
+        baseproxy = xmlrpclib.ServerProxy(self.target)
+        try:
+            baseproxy.manage_addProduct.PythonScripts.manage_addPythonScript('remoteschemaupdater_update')
+        except xmlrpclib.ProtocolError:
+            # tmp redir after add
+            pass
+        except xmlrpclib.Fault:
+            # it already exists
+            pass
+        params = "path, values"
+        body = "return context.restrictedTraverse(path).update(**values)"
+        baseproxy.remoteschemaupdater_update.ZPythonScriptHTML_editAction(
+            False, '', params, body)
+
         for item in self.previous:
             if not self.target:
                 yield item
@@ -128,6 +146,9 @@ class RemoteSchemaUpdaterSection(object):
                     yield item
                     continue
 
+            complex_values = []
+            single_update = {}
+
             for key, parts in fields.items():
                 value, arguments = parts
                 if key in self.skip_fields:
@@ -148,49 +169,29 @@ class RemoteSchemaUpdaterSection(object):
                     self.logger.warning('%s %s=%s' % (path, key, value))
                     continue
 
-                method = key[0].upper() + key[1:]
                 if arguments:
                     #need to use urllib for keywork arguments
                     arguments.update(dict(value=value))
-                    input = urllib.urlencode(arguments)
-                    f = None
-                    for attempt in range(0, 3):
-                        try:
-                            f = urllib.urlopen(url + '/set%s' % key.capitalize(), input)
-                            break
-                        except IOError, e:
-                            #import pdb; pdb.set_trace()
-                            self.logger.warning("%s.set%s() raised %s" % (path, method, e))
-                    if f is None:
-                        self.logger.warning("%s.set%s() raised too many errors. Giving up" % (path, method))
-                        break
-
-                    #nurl = f.geturl()
-                    info = f.info()
-                    #print method + str(arguments)
-                    if info.status != '':
-                        e = str(f.read())
-                        f.close()
-                        self.logger.error("%s.set%s(%s) raised %s" % (
-                            path, method, arguments, e))
-                    else:
-                        updated.append(key)
+                    complex_values.append( (key, arguments) )
                 else:
-                    # setModificationDate doesn't use 'value' keyword
-                    try:
-                        # XXX Better way than catching method names?
-                        if method == 'Image':    # wrap binary image data
-                            value = xmlrpclib.Binary(value)
+                    ## XXX Better way than catching method names?
+                    #if key.lower() == 'image':    # wrap binary image data
+                    #    value = xmlrpclib.Binary(value)
+                    single_update[key] = value
 
-                        getattr(proxy, 'set%s' % method)(value)
-                        updated.append(key)
+            for key, input in complex_values:
+                method = key[0].upper() + key[1:]
+                if self.urlrpc(url + '/set%s' % method, input):
+                    updated.append(key)
 
-                    except xmlrpclib.Fault, e:
-                        self.logger.error("%s.set%s(%s) raised %s" % (path, method, value, e))
-                    except xmlrpclib.ProtocolError, e:
-                        self.logger.error("%s.set%s(%s) raised %s" % (path, method, value, e))
-            if updated:
+            if single_update:
+                # Problem with using update is it gives no error. Maybe verify fields in schema first?
+                # Advantage of update is it works with schemaextender
+                if baseproxy.remoteschemaupdater_update(path, single_update):
+                #if Object(url).update(**single_update):
+                    updated.append(single_update.keys())
                 self.logger.info('%s set fields=%s' % (path, updated))
+            elif updated:
                 try:
                     # doesn't set modified
                     proxy.reindexObject(updated)
@@ -198,7 +199,41 @@ class RemoteSchemaUpdaterSection(object):
                     self.logger.error("%s.reindexObject() raised %s" % (path, e))
                 except xmlrpclib.ProtocolError, e:
                     self.logger.error("%s.reindexObject() raised %s" % (path, e))
+                self.logger.info('%s set fields=%s' % (path, updated))
             else:
                 self.logger.info('%s no fields to set' % (path))
 
             yield item
+
+        # finally remove our helper method
+        baseproxy.manage_delObjects(['remoteschemaupdater_update'])
+
+    def urlrpc(self, url, args):
+        """
+        calls urllib open for plone view. returns a status code, or logs error.
+        handles retries in case of connection problems.
+        """
+        input = urllib.urlencode(args)
+        f = None
+        for attempt in range(0, 3):
+            try:
+                f = urllib.urlopen(url, input)
+                break
+            except IOError, e:
+                #import pdb; pdb.set_trace()
+                self.logger.warning("%s raised %s" % (url, e))
+        if f is None:
+            self.logger.warning("%s raised too many errors. Giving up" % url)
+            return False
+
+        #nurl = f.geturl()
+        info = f.info()
+        #print method + str(arguments)
+        if info.status != '':
+            e = str(f.read())
+            f.close()
+            self.logger.error("%s %s raised %s" % (
+                url, args, e))
+            return False
+        else:
+            return True
