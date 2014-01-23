@@ -1,4 +1,5 @@
 #from zope import event
+import socket
 from zope.interface import classProvides, implements
 from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
@@ -187,10 +188,16 @@ class RemoteSchemaUpdaterSection(object):
             if single_update:
                 # Problem with using update is it gives no error. Maybe verify fields in schema first?
                 # Advantage of update is it works with schemaextender
-                if baseproxy.remoteschemaupdater_update(path, single_update):
-                #if Object(url).update(**single_update):
-                    updated.append(single_update.keys())
-                self.logger.info('%s set fields=%s' % (path, updated))
+                for retry in range(0,2):
+                    try:
+                        if baseproxy.remoteschemaupdater_update(path, single_update):
+                        #if Object(url).update(**single_update):
+                            updated.append(single_update.keys())
+                        self.logger.info('%s set fields=%s' % (path, updated))
+                        break
+                    except socket.error:
+                        self.logger.warning('RETRY: Socker.error during %s set fields=%s' % (path, updated))
+                        pass
             elif updated:
                 try:
                     # doesn't set modified
