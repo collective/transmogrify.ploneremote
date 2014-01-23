@@ -1,0 +1,38 @@
+This test checks https://dev.plone.org/plone/ticket/8260, i.e. it makes sure
+no redirection entries are created when a content object gets instantiated:
+
+  >>> from zope.component import getUtility
+  >>> from plone.app.redirector.interfaces import IRedirectionStorage
+  >>> storage = getUtility(IRedirectionStorage)
+
+Initially the redirection storage should be empty:
+
+  >>> self.assertEqual(list(storage), [])
+
+Let's create an object and check again:
+
+  >>> self.setRoles(('Manager',))
+  >>> browser = self.getBrowser()
+  >>> browser.open('http://nohost/plone/')
+  >>> browser.getLink(url='/createObject?type_name=Document').click()
+  >>> browser.getControl('Title').value = 'Foo'
+  >>> browser.getControl('Save').click()
+  >>> browser.contents
+  '...Info...Changes saved...
+   ...documentFirstHeading...Foo...
+
+  >>> self.assertEqual(list(storage), [])
+
+However, if this object is renamed in a normal manner, an entry should be
+created, of course:
+
+  >>> browser.open('http://nohost/plone/folder_contents')
+  >>> browser.getControl('Foo').selected = True
+  >>> browser.getControl('Rename').click()
+  >>> browser.getControl('New Short Name').value = 'bar'
+  >>> browser.getControl('New Title').value = 'Bar'
+  >>> browser.getControl('Rename All').click()
+
+  >>> self.assertEqual(list(storage), ['/plone/foo'])
+  >>> self.assertEqual(storage.get('/plone/foo'), '/plone/bar')
+

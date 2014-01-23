@@ -38,6 +38,12 @@ setup(name='transmogrify.ploneremote',
       include_package_data=True,
       zip_safe=False,
       install_requires=install_requires,
+        extras_require={
+            'test': ['plone.app.testing',
+                     'Plone',
+                     'mr.migrator',
+                     'funnelweb'],
+        },
       entry_points="""
             [z3c.autoinclude.plugin]
             target = transmogrify
