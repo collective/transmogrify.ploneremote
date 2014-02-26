@@ -44,19 +44,21 @@ class RemoteSchemaUpdaterSection(object):
         # We will create a helper Python script on the server to help get around
         # problems in the plone api for updating fields.
 
-        baseproxy = xmlrpclib.ServerProxy(self.target)
-        try:
-            baseproxy.manage_addProduct.PythonScripts.manage_addPythonScript('remoteschemaupdater_update')
-        except xmlrpclib.ProtocolError:
-            # tmp redir after add
-            pass
-        except xmlrpclib.Fault:
-            # it already exists
-            pass
-        params = "path, values"
-        body = "return context.restrictedTraverse(path).update(**values)"
-        baseproxy.remoteschemaupdater_update.ZPythonScriptHTML_editAction(
-            False, '', params, body)
+        baseproxy=None
+        if self.target:
+            try:
+                baseproxy = xmlrpclib.ServerProxy(self.target)
+                baseproxy.manage_addProduct.PythonScripts.manage_addPythonScript('remoteschemaupdater_update')
+            except xmlrpclib.ProtocolError:
+                # tmp redir after add
+                pass
+            except xmlrpclib.Fault:
+                # it already exists
+                pass
+            params = "path, values"
+            body = "return context.restrictedTraverse(path).update(**values)"
+            baseproxy.remoteschemaupdater_update.ZPythonScriptHTML_editAction(
+                False, '', params, body)
 
         for item in self.previous:
             if not self.target:
@@ -213,7 +215,8 @@ class RemoteSchemaUpdaterSection(object):
             yield item
 
         # finally remove our helper method
-        baseproxy.manage_delObjects(['remoteschemaupdater_update'])
+        if baseproxy is not None:
+            baseproxy.manage_delObjects(['remoteschemaupdater_update'])
 
     def urlrpc(self, url, args):
         """

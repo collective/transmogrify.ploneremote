@@ -74,7 +74,7 @@ class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
                 action = "content_status_modify?workflow_action=" + transition
                 transition_trigger_url = urllib.basejoin(remote_url, action)
                 if action not in html:
-                    self.logger.debug('%s skipping (no action)'%(path))
+                    self.logger.debug('%s skipping (no action found for %s)'%(path,action))
                     continue
 
                 self.logger.debug("%s performing transition '%s'" % (path,
