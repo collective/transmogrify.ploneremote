@@ -26,9 +26,17 @@ class RemoteNavigationExcluderSection(PathBasedAbstractRemoteCommand):
         # Which key we use to read navigation exclusion hint
         self.exclusion = defaultMatcher(options, 'exclude-from-navigation-key',
             self.name, 'exclude-from-navigation')
+        self.skip_until_path = options.get('skip-until-path','')
+        self.skipkey = options.get('skip-update-key', '_skip-update')
 
     def __iter__(self):
         self.checkOptions()
+
+        if not self.skip_until_path:
+            pathfound = True
+        else:
+            pathfound = False
+
         for item in self.previous:
             keys = item.keys()
             typekey = self.typekey(*keys)[0]
@@ -36,6 +44,19 @@ class RemoteNavigationExcluderSection(PathBasedAbstractRemoteCommand):
             path = self.extractPath(item)
             type = self.extractType(item)
             exclude_from_nav = self.extractTruthValue(item, self.exclusion)
+
+            if not pathfound:
+                if path == self.skip_until_path:
+                    pathfound = True
+                else:
+                    self.logger.info('%s skipping (skip-until-path)' % (path))
+                    yield item
+                    continue
+
+            if self.skipkey and self.skipkey in item and item[self.skipkey]:
+                    self.logger.info('%s skipping (skip-update-key)' % (path))
+                    yield item
+                    continue
 
             if not (typekey and pathkey):             # not enough info
                 yield item
@@ -57,7 +78,15 @@ class RemoteNavigationExcluderSection(PathBasedAbstractRemoteCommand):
             url = self.constructRemoteURL(item)
 
             proxy = xmlrpclib.ServerProxy(url)
-            proxy.setExcludeFromNav(exclude_from_nav)
+            retry = 0
+            while True:
+                try:
+                    proxy.setExcludeFromNav(exclude_from_nav)
+                    break
+                except:
+                    retry += 1
+                    if retry == 3:
+                        raise
             # Make sure the change is reflected to portal_catalog
             # TODO: Can't figure out how to pass named arguments to XML-RPC
             # proxy

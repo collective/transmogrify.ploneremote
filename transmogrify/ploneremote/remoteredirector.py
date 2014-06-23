@@ -8,6 +8,7 @@ from collective.transmogrifier.interfaces import ISection
 import xmlrpclib
 
 from base import PathBasedAbstractRemoteCommand
+from collective.transmogrifier.utils import defaultMatcher
 
 
 class RemoteRedirectorSection(PathBasedAbstractRemoteCommand):
@@ -20,8 +21,25 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand):
     classProvides(ISectionBlueprint)
     implements(ISection)
 
+    def readOptions(self, options):
+        """ Read options give in pipeline.cfg
+        """
+
+        # Call parent
+        PathBasedAbstractRemoteCommand.readOptions(self, options)
+
+        # Remote site / object URL containing HTTP Basic Auth username and password
+        self.skip_until_path = options.get('skip-until-path','')
+        self.skipkey = options.get('skip-update-key', '_skip-update')
+
     def __iter__(self):
         self.checkOptions()
+
+        if not self.skip_until_path:
+            pathfound = True
+        else:
+            pathfound = False
+
         for item in self.previous:
             keys = item.keys()
             typekey = self.typekey(*keys)[0]
@@ -35,6 +53,18 @@ class RemoteRedirectorSection(PathBasedAbstractRemoteCommand):
             if not path or not self.target:
                 yield item
                 continue
+
+            if not pathfound:
+                if path == self.skip_until_path:
+                    pathfound = True
+                else:
+                    self.logger.info('%s skipping (skip-until-path)' % (path))
+                    yield item
+                    continue
+            if self.skipkey and self.skipkey in item and item[self.skipkey]:
+                    self.logger.info('%s skipping (skip-update-key)' % (path))
+                    yield item
+                    continue
 
             proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
             if not self.condition(item, proxy=proxy):

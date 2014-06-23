@@ -1,3 +1,4 @@
+from socket import socket
 from zope.interface import classProvides, implements
 from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.interfaces import ISection
@@ -37,6 +38,7 @@ class RemoteConstructorSection(object):
         self.create=Condition(options.get('create-condition','python:True'), transmogrifier, name, options)
         self.move=Condition(options.get('move-condition','python:True'), transmogrifier, name, options)
         self.remove=Condition(options.get('remove-condition','python:True'), transmogrifier, name, options)
+        self.skip_until_path = options.get('skip-until-path','')
 
     def __iter__(self):
 
@@ -46,6 +48,11 @@ class RemoteConstructorSection(object):
             virtualpath = proxy.virtual_url_path()
             portal_url = self.target[:-len(virtualpath)-1]
             _,host,targetpath,_,_,_ = urlparse.urlparse(self.target)
+
+        if not self.skip_until_path:
+            pathfound = True
+        else:
+            pathfound = False
 
         # record subjects of a folder (indexed by path) so we can set position
         subobjects = {}
@@ -65,6 +72,15 @@ class RemoteConstructorSection(object):
 
             path = path.encode('ascii')
             path = self.removeInvalidChar(path)
+
+            if not pathfound:
+                if path == self.skip_until_path:
+                    pathfound = True
+                else:
+                    self.logger.info('%s skipping (skip-until-path)' % (path))
+                    yield item
+                    continue
+
             parentpath =  '/'.join(path.split('/')[:-1])
             parenturl = urllib.basejoin(self.target, parentpath.lstrip('/'))
             parent = xmlrpclib.ServerProxy(parenturl)
@@ -122,12 +138,15 @@ class RemoteConstructorSection(object):
                     parent.manage_renameObject(oldid, id)
                 except:
                     # something already has that id. need to delete it
-                    for i in range(1,20):
+                    retry = 0
+                    while True:
                         try:
                             parent.manage_renameObject(id, "%s-%s"%(id,i))
                             break
                         except:
-                            pass
+                            retry += 1
+                            if retry == 3:
+                                raise
                     parent.manage_renameObject(oldid, id)
                 moved = True
             else:
@@ -146,12 +165,15 @@ class RemoteConstructorSection(object):
                 existingtype = None
             elif existingtype and existingtype != type_ and self.move(item):
                 self.logger.info("%s already exists. but is %s instead of %s. Moving"% (path,existingtype, type_) )
-                for i in range(1,20):
+                retry = 0
+                while True:
                     try:
                         parent.manage_renameObject(id, id+'-%s'%i)
                         break
                     except xmlrpclib.Fault:
-                        pass
+                        retry += 1
+                        if retry == 3:
+                            raise
                 existingtype = None
 
             elif existingtype:
@@ -183,7 +205,15 @@ class RemoteConstructorSection(object):
             # now try setting position
             position = len(subobjects[parentpath])-1
             self.logger.debug("'%s' setting position=%s"%(path,position))
-            parent.moveObjectToPosition(id, position)
+            retry = 0
+            while True:
+                try:
+                    parent.moveObjectToPosition(id, position)
+                    break
+                except:
+                    retry += 1
+                    if retry == 3:
+                        raise
 
             yield item
 
@@ -205,7 +235,15 @@ class RemoteConstructorSection(object):
             auth = 'Basic ' + string.strip(base64.encodestring(auth))
             headers['Authorization'] = auth
         # /view is a hack as zope seems to send all content on head request
-        conn.request("HEAD", targetpath+orig_path, headers=headers)
+        retry = 0
+        while True:
+            try:
+                conn.request("HEAD", targetpath+orig_path, headers=headers)
+                break
+            except socket.error:
+                retry += 1
+                if retry == 3:
+                    raise
         res = conn.getresponse()
         redir = res.status == 301
         if redir and res.getheader('location'):

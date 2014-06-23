@@ -12,6 +12,8 @@ from collective.transmogrifier.utils import Condition
 #import datetime
 import DateTime
 from ZPublisher.Client import Object, call
+from collective.transmogrifier.utils import defaultMatcher
+
 
 class RemoteSchemaUpdaterSection(object):
     classProvides(ISectionBlueprint)
@@ -22,13 +24,16 @@ class RemoteSchemaUpdaterSection(object):
         self.context = transmogrifier.context
         self.target = options['target']
         self.logger = logging.getLogger(name)
+        self.name = name
         self.condition = Condition(options.get('condition', 'python:True'), transmogrifier, name, options)
         self.skip_existing = options.get('skip-existing', 'False').lower() in ['true', 'yes']
         self.skip_unmodified = options.get('skip-unmodified', 'True').lower() in ['true', 'yes']
         self.skip_fields = set([f.strip() for f in options.get('skip-fields', '').split('\n') if f.strip()])
+        self.skip_until_path = options.get('skip-until-path','')
         self.creation_key = options.get('creation-key', '_creation_flag').strip()
         self.headers_key = options.get('headers-key', '_content_info').strip()
         self.defaultpage_key = options.get('defaultpage-key', '_defaultpage').strip()
+        self.skipkey = options.get('skip-update-key', '_skip-update')
 
         if self.target:
             self.target = self.target.rstrip('/') + '/'
@@ -56,9 +61,14 @@ class RemoteSchemaUpdaterSection(object):
                 # it already exists
                 pass
             params = "path, values"
-            body = "return context.restrictedTraverse(path).update(**values)"
+            body = "context.restrictedTraverse(path).update(**values); return True"
             baseproxy.remoteschemaupdater_update.ZPythonScriptHTML_editAction(
                 False, '', params, body)
+
+        if not self.skip_until_path:
+            pathfound = True
+        else:
+            pathfound = False
 
         for item in self.previous:
             if not self.target:
@@ -72,6 +82,16 @@ class RemoteSchemaUpdaterSection(object):
                 continue
 
             path = item[pathkey]
+
+            if not pathfound:
+                if path == self.skip_until_path:
+                    pathfound = True
+                else:
+                    self.logger.info('%s skipping (skip-until-path)' % (path))
+                    if self.skipkey and self.skipkey not in item:
+                        item[self.skipkey] = True
+                    yield item
+                    continue
 
             # XXX Why basejoin?
             # url = urllib.basejoin(self.target, path)
@@ -88,6 +108,8 @@ class RemoteSchemaUpdaterSection(object):
 
             if not self.condition(item, proxy=proxy):
                 self.logger.info('%s skipping (condition)' % (path))
+                if self.skipkey and self.skipkey not in item:
+                    item[self.skipkey] = True
                 yield item
                 continue
 
@@ -98,6 +120,8 @@ class RemoteSchemaUpdaterSection(object):
 
             if self.skip_existing and not created:
                 self.logger.info('%s skipping existing' % (path))
+                if self.skipkey and self.skipkey not in item:
+                    item[self.skipkey] = True
                 yield item
                 continue
 
@@ -137,7 +161,15 @@ class RemoteSchemaUpdaterSection(object):
             else:
                 modified = None
 
-            smodified = proxy.ModificationDate()
+            while True:
+                retry = 0
+                try:
+                    smodified = proxy.ModificationDate()
+                    break
+                except:
+                    retry += 1
+                    if retry == 3:
+                        raise
             #smodified = datetime.datetime.strptime(smodified, "%Y-%m-%dT%H:%M:%S.Z")
             if type(smodified) == type(''):
                 smodified = DateTime.DateTime(smodified)
@@ -146,6 +178,8 @@ class RemoteSchemaUpdaterSection(object):
                 size = float(urllib.urlopen(url + '/getObjSize').read().split()[0])
                 if size > 0:
                     self.logger.info('%s skipping (unmodified)' % (path))
+                    if self.skipkey and self.skipkey not in item:
+                        item[self.skipkey] = True
                     yield item
                     continue
 
@@ -154,7 +188,7 @@ class RemoteSchemaUpdaterSection(object):
 
             for key, parts in fields.items():
                 value, arguments = parts
-                if key in self.skip_fields:
+                if not created and key in self.skip_fields:
                     continue
 
                 if type(value) == type(u''):
@@ -180,6 +214,12 @@ class RemoteSchemaUpdaterSection(object):
                     ## XXX Better way than catching method names?
                     #if key.lower() == 'image':    # wrap binary image data
                     #    value = xmlrpclib.Binary(value)
+
+                    # in case user got confused about field names
+                    if key == 'modificationDate':
+                        key = 'modification_date'
+                    elif key == 'creationDate':
+                        key = 'creation_date'
                     single_update[key] = value
 
             for key, input in complex_values:
@@ -190,16 +230,19 @@ class RemoteSchemaUpdaterSection(object):
             if single_update:
                 # Problem with using update is it gives no error. Maybe verify fields in schema first?
                 # Advantage of update is it works with schemaextender
-                for retry in range(0,2):
+                retry = 0
+                while True:
                     try:
                         if baseproxy.remoteschemaupdater_update(path, single_update):
                         #if Object(url).update(**single_update):
-                            updated.append(single_update.keys())
+                            updated.extend(single_update.keys())
                         self.logger.info('%s set fields=%s' % (path, updated))
                         break
                     except socket.error:
                         self.logger.warning('RETRY: Socker.error during %s set fields=%s' % (path, updated))
-                        pass
+                        retry += 0
+                        if retry == 3:
+                            raise
             elif updated:
                 try:
                     # doesn't set modified
@@ -225,13 +268,17 @@ class RemoteSchemaUpdaterSection(object):
         """
         input = urllib.urlencode(args)
         f = None
-        for attempt in range(0, 3):
+        retry = 0
+        while True:
             try:
                 f = urllib.urlopen(url, input)
                 break
             except IOError, e:
+                retry += 1
                 #import pdb; pdb.set_trace()
                 self.logger.warning("%s raised %s" % (url, e))
+                if retry == 3:
+                    raise
         if f is None:
             self.logger.warning("%s raised too many errors. Giving up" % url)
             return False

@@ -34,10 +34,18 @@ class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
         self.pathkey = defaultMatcher(options, 'path-key', self.name, 'path')
         self.transitionskey = defaultMatcher(options, 'transitions-key', self.name,
                                              'transitions')
-
+        self.skip_until_path = options.get('skip-until-path','')
+        self.skipkey = options.get('skip-update-key', '_skip-update')
 
     def __iter__(self):
         self.checkOptions()
+
+        if not self.skip_until_path:
+            pathfound = True
+        else:
+            pathfound = False
+
+
         for item in self.previous:
             if not self.target:
                 yield item
@@ -53,6 +61,21 @@ class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
                 continue
 
             path, transitions = item[pathkey], item[transitionskey]
+
+            if not pathfound:
+                if path == self.skip_until_path:
+                    pathfound = True
+                else:
+                    self.logger.info('%s skipping (skip-until-path)' % (path))
+                    yield item
+                    continue
+            if self.skipkey and self.skipkey in item and item[self.skipkey]:
+                    self.logger.info('%s skipping (skip-update-key)' % (path))
+                    yield item
+                    continue
+
+
+
             proxy = xmlrpclib.ServerProxy(self.constructRemoteURL(item))
             if not self.condition(item, proxy=proxy):
                 self.logger.debug('%s skipping (condition)'%(path))
@@ -67,7 +90,15 @@ class RemoteWorkflowUpdaterSection(PathBasedAbstractRemoteCommand):
                 remote_url += "/"
 
             # hacky way to get available transitions so we can avoid updating content
-            f = urllib.urlopen(urllib.basejoin(remote_url,'view'))
+            retry = 0
+            while True:
+                try:
+                    f = urllib.urlopen(urllib.basejoin(remote_url,'view'))
+                    break
+                except:
+                    retry += 1
+                    if retry == 3:
+                        raise
             html = f.read()
 
             for transition in transitions:
