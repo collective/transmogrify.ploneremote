@@ -79,7 +79,7 @@ class RemoteApi():
     def getTypeInfo(self):
         return self.proxy.getTypeInfo()
 
-    def Type(self)
+    def Type(self):
         return self.getTypeInfo().get('id')
 
     def manage_delObjects(ids):
